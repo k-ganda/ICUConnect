@@ -1,0 +1,123 @@
+/* Auth Pages - Matching Dashboard Theme */
+.auth-container {
+	background-color: #2c3e50;
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+}
+
+.auth-card {
+	background: white;
+	width: 100%;
+	max-width: 500px;
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+	animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.auth-header {
+	background: #1a252f;
+	color: white;
+	padding: 25px;
+	text-align: center;
+	position: relative;
+}
+
+.auth-header h3 {
+	margin: 0;
+	font-weight: 600;
+	font-size: 1.5rem;
+}
+
+.auth-header p {
+	margin: 5px 0 0;
+	opacity: 0.8;
+}
+
+.auth-header::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 80px;
+	height: 3px;
+	background: #3498db;
+}
+
+.auth-body {
+	padding: 30px;
+}
+
+.auth-form .form-control,
+.auth-form .form-select {
+	border-radius: 6px;
+	padding: 12px 15px;
+	border: 2px solid #e0e0e0;
+	transition: all 0.3s;
+	margin-bottom: 20px;
+}
+
+.auth-form .form-control:focus,
+.auth-form .form-select:focus {
+	border-color: #3498db;
+	box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+}
+
+.auth-form .btn-primary {
+	background-color: #3498db;
+	border-color: #3498db;
+	padding: 12px;
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	transition: all 0.3s;
+}
+
+.auth-form .btn-primary:hover {
+	background-color: #2980b9;
+	transform: translateY(-2px);
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.auth-footer {
+	text-align: center;
+	margin-top: 20px;
+	padding-top: 20px;
+	border-top: 1px solid #eee;
+	color: #7f8c8d;
+}
+
+.auth-footer a {
+	color: #3498db;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.auth-footer a:hover {
+	text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+	.auth-container {
+		padding: 15px;
+	}
+
+	.auth-body {
+		padding: 20px;
+	}
+}
