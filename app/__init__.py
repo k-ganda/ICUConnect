@@ -41,9 +41,11 @@ def create_app():
         # Register blueprints
         from app.routes.main import bp as main_bp
         from app.routes.auth import auth_bp
+        from app.routes.admin import admin_bp
         
         app.register_blueprint(main_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
+        app.register_blueprint(admin_bp, url_prefix='/admin')
         
         # Initialize database
         _initialize_database()
