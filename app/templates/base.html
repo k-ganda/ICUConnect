@@ -13,6 +13,27 @@
 		<link
 			rel="stylesheet"
 			href="{{ url_for('static', filename='css/styles.css') }}" />
+		<style>
+			/* Modal Animation */
+			.modal.fade .modal-dialog {
+				transform: translateY(-50px);
+				transition: transform 0.3s ease-out;
+			}
+			.modal.show .modal-dialog {
+				transform: none;
+			}
+		</style>
+		<script>
+			document.addEventListener('DOMContentLoaded', function () {
+				setTimeout(function () {
+					let alerts = document.querySelectorAll('.alert');
+					alerts.forEach((alert) => {
+						let bsAlert = new bootstrap.Alert(alert);
+						bsAlert.close();
+					});
+				}, 5000);
+			});
+		</script>
 	</head>
 	<body>
 		{% block content %}{% endblock %}

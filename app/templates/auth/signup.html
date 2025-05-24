@@ -7,43 +7,121 @@ content %}
 			<p class="mb-0">Create Hospital Account</p>
 		</div>
 		<div class="auth-body">
-			<form class="auth-form">
+			<form
+				class="auth-form"
+				method="POST"
+				action="{{ url_for('auth.signup') }}"
+				autocomplete="off">
 				<div class="mb-3">
 					<label class="form-label">Full Name</label>
 					<input
 						type="text"
 						class="form-control"
-						placeholder="Your full name" />
+						placeholder="Your full name, include prefix; Dr, nurse etc"
+						name="name"
+						required />
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Email</label>
-					<input type="email" class="form-control" placeholder="Your email" />
+					<input
+						type="email"
+						class="form-control"
+						placeholder="Your email"
+						name="email"
+						required />
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Password</label>
 					<input
 						type="password"
 						class="form-control"
-						placeholder="Create password" />
+						placeholder="Create password"
+						name="password"
+						required />
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Hospital</label>
-					<select class="form-select">
-						<option selected disabled>Select hospital</option>
-						<option>Jaramogi Hospital</option>
-						<option>Aga Khan Hospital</option>
-						<option>Nairobi Hospital</option>
+					<select class="form-select" name="hospital" required>
+						<option selected disabled value="">Select hospital</option>
+						{% for hospital in hospitals %}
+						<option value="{{ hospital.id }}">{{ hospital.name }}</option>
+						{% endfor %}
 					</select>
 				</div>
+				<div class="mb-3">
+					<label class="form-label">Employment ID</label>
+					<input
+						type="text"
+						class="form-control"
+						name="employee_id"
+						placeholder="Hospital-issued ID"
+						required />
+					<small class="text-muted">Admins will verify this</small>
+				</div>
+
 				<button type="submit" class="btn btn-primary w-100">
 					<i class="fas fa-user-plus me-2"></i>Create Account
 				</button>
 			</form>
 			<div class="auth-footer mt-3">
 				Already have an account?
-				<a href="{{ url_for('main.login') }}">Log in</a>
+				<a href="{{ url_for('auth.login') }}">Log in</a>
 			</div>
 		</div>
 	</div>
 </div>
+
+<!-- Success Modal -->
+{% if show_success_modal %}
+<div
+	class="modal fade show"
+	id="successModal"
+	tabindex="-1"
+	aria-hidden="false"
+	style="display: block; padding-right: 17px">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header bg-success text-white">
+				<h5 class="modal-title">
+					<i class="fas fa-check-circle me-2"></i>Success!
+				</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="modal"
+					aria-label="Close"></button>
+			</div>
+			<div class="modal-body text-center">
+				<div class="mb-3">
+					<i class="fas fa-envelope-open-text fa-4x text-success"></i>
+				</div>
+				<h4>Account Created Successfully!</h4>
+				<p>Your account is pending approval from the administrator.</p>
+				<p>
+					You'll receive an email notification once your account is approved.
+				</p>
+			</div>
+			<div class="modal-footer justify-content-center">
+				<a href="{{ url_for('auth.login') }}" class="btn btn-success px-4">
+					<i class="fas fa-sign-in-alt me-2"></i>Go to Login
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %} {% endblock %} {% block scripts %} {{ super() }}
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+	    // Show modal if success
+	    {% if show_success_modal %}
+	    var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+	    successModal.show();
+
+	    // Redirect when modal is closed
+	    document.getElementById('successModal').addEventListener('hidden.bs.modal', function () {
+	        window.location.href = "{{ url_for('auth.login') }}";
+	    });
+	    {% endif %}
+	});
+</script>
 {% endblock %}

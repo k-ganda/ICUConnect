@@ -1,0 +1,194 @@
+{% extends "base.html" %} {% block content %}
+<div class="admin-dashboard">
+	<div class="dashboard-header">
+		<h2><i class="fas fa-hospital me-2"></i>Admin Management Dashboard</h2>
+		<div class="header-actions">
+			<span class="badge bg-info"
+				>{{ pending_users|length }} Pending Approvals</span
+			>
+		</div>
+	</div>
+
+	<div class="approval-card">
+		<div class="card-header">
+			<h3><i class="fas fa-user-clock me-2"></i>Pending Approvals</h3>
+		</div>
+		<div class="card-body">
+			{% if pending_users %}
+			<div class="approval-table-container">
+				<table class="approval-table">
+					<thead>
+						<tr>
+							<th>Email</th>
+							<th>Name</th>
+							<th>Hospital</th>
+							<th>Employee ID</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for user in pending_users %}
+						<tr>
+							<td>{{ user.email }}</td>
+							<td>{{ user.name }}</td>
+							<td>{{ user.hospital.name }}</td>
+							<td>{{ user.employee_id }}</td>
+							<td>
+								<a
+									href="{{ url_for('admin.approve_user', user_id=user.id) }}"
+									class="approve-btn"
+									onclick="return confirm('Are you sure you want to approve {{ user.email }}?')">
+									<i class="fas fa-check-circle me-1"></i>Approve
+								</a>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% else %}
+			<div class="no-pending">
+				<i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+				<p>No pending approvals at this time</p>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+</div>
+
+<style>
+	/* Admin Dashboard Styles */
+	.admin-dashboard {
+		padding: 2rem;
+		background-color: #f8f9fa;
+		min-height: 100vh;
+	}
+
+	.dashboard-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 2rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.dashboard-header h2 {
+		color: #2c3e50;
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.header-actions .badge {
+		font-size: 1rem;
+		padding: 0.5rem 1rem;
+	}
+
+	.approval-card {
+		background: white;
+		border-radius: 10px;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		overflow: hidden;
+	}
+
+	.card-header {
+		background-color: #3498db;
+		color: white;
+		padding: 1.25rem 1.5rem;
+	}
+
+	.card-header h3 {
+		margin: 0;
+		font-weight: 500;
+	}
+
+	.card-body {
+		padding: 1.5rem;
+	}
+
+	.approval-table-container {
+		overflow-x: auto;
+	}
+
+	.approval-table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+
+	.approval-table th {
+		background-color: #f1f5f9;
+		color: #4a5568;
+		padding: 1rem;
+		text-align: left;
+		font-weight: 600;
+		border-bottom: 2px solid #e2e8f0;
+	}
+
+	.approval-table td {
+		padding: 1rem;
+		border-bottom: 1px solid #edf2f7;
+		vertical-align: middle;
+	}
+
+	.approval-table tr:last-child td {
+		border-bottom: none;
+	}
+
+	.approval-table tr:hover td {
+		background-color: #f8fafc;
+	}
+
+	.approve-btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5rem 1rem;
+		background-color: #10b981;
+		color: white;
+		border-radius: 6px;
+		text-decoration: none;
+		font-weight: 500;
+		transition: all 0.2s;
+	}
+
+	.approve-btn:hover {
+		background-color: #059669;
+		transform: translateY(-1px);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.no-pending {
+		text-align: center;
+		padding: 3rem 2rem;
+		color: #4a5568;
+	}
+
+	.no-pending p {
+		margin-top: 1rem;
+		font-size: 1.1rem;
+	}
+
+	@media (max-width: 768px) {
+		.dashboard-header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 1rem;
+		}
+
+		.approval-table th,
+		.approval-table td {
+			padding: 0.75rem 0.5rem;
+			font-size: 0.9rem;
+		}
+	}
+</style>
+
+<script>
+	// Add slight animation to approve buttons
+	document.querySelectorAll('.approve-btn').forEach((btn) => {
+		btn.addEventListener('click', function (e) {
+			e.target.innerHTML =
+				'<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+		});
+	});
+</script>
+{% endblock %}

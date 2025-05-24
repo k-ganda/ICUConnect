@@ -6,19 +6,33 @@
 			<h3><i class="fas fa-hospital me-2"></i>ICUConnect</h3>
 		</div>
 		<div class="auth-body">
-			<form class="auth-form">
+			<form
+				class="auth-form"
+				method="POST"
+				action="{{ url_for('auth.login') }}"
+				autocomplete="off">
 				<div class="mb-3">
 					<label class="form-label">Email</label>
-					<input type="email" class="form-control" placeholder="Enter email" />
+					<input
+						type="email"
+						class="form-control"
+						placeholder="Enter email"
+						name="email"
+						required />
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Password</label>
-					<input type="password" class="form-control" placeholder="Password" />
+					<input
+						type="password"
+						class="form-control"
+						placeholder="Password"
+						name="password"
+						required />
 				</div>
 				<button type="submit" class="btn btn-primary w-100">Login</button>
 			</form>
 			<div class="auth-footer mt-3">
-				<a href="{{ url_for('main.signup') }}">Create account</a>
+				<a href="{{ url_for('auth.signup') }}">Create account</a>
 			</div>
 		</div>
 	</div>
