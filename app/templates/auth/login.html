@@ -22,13 +22,23 @@
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Password</label>
-					<input
-						type="password"
-						class="form-control"
-						placeholder="Password"
-						name="password"
-						required />
+					<div class="position-relative">
+						<input
+							type="password"
+							class="form-control"
+							id="loginPassword"
+							name="password"
+							placeholder="Enter password"
+							required />
+						<button
+							type="button"
+							id="toggleLoginPassword"
+							class="password-toggle-btn">
+							<i class="fas fa-eye"></i>
+						</button>
+					</div>
 				</div>
+
 				<button type="submit" class="btn btn-primary w-100">Login</button>
 			</form>
 			<div class="auth-footer mt-3">
@@ -37,4 +47,34 @@
 		</div>
 	</div>
 </div>
+<script>
+	// Password toggle functionality
+	function setupPasswordToggle(buttonId, inputId) {
+		const toggleButton = document.getElementById(buttonId);
+		const passwordInput = document.getElementById(inputId);
+
+		toggleButton.addEventListener('click', function () {
+			const type =
+				passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+			passwordInput.setAttribute('type', type);
+
+			// Toggle eye icon
+			const icon = this.querySelector('i');
+			icon.classList.toggle('fa-eye');
+			icon.classList.toggle('fa-eye-slash');
+		});
+	}
+
+	document.addEventListener('DOMContentLoaded', function () {
+		// Initialize for login form
+		if (document.getElementById('toggleLoginPassword')) {
+			setupPasswordToggle('toggleLoginPassword', 'loginPassword');
+		}
+
+		// Initialize for signup form
+		if (document.getElementById('toggleSignupPassword')) {
+			setupPasswordToggle('toggleSignupPassword', 'signupPassword');
+		}
+	});
+</script>
 {% endblock %}

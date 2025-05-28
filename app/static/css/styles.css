@@ -1,4 +1,6 @@
-/* Auth Pages - Matching Dashboard Theme */
+/* =============================== */
+/* Auth Pages + Password Eye Fix   */
+/* =============================== */
 .auth-container {
 	background-color: #2c3e50;
 	min-height: 100vh;
@@ -93,6 +95,107 @@
 	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* ============================== */
+/* PASSWORD FIELD W/ EYE ICON 
+/* ============================== */
+.input-group {
+	position: relative;
+}
+
+#signupPassword {
+	padding-right: 42px;
+	border-radius: 6px;
+}
+
+#toggleSignupPassword {
+	position: absolute;
+	top: 40%;
+	right: 12px;
+	transform: translateY(-50%);
+	border: none;
+	background: transparent !important;
+	box-shadow: none !important;
+	z-index: 5;
+	padding: 0;
+	cursor: pointer;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#toggleSignupPassword i {
+	color: #6c757d;
+	font-size: 1rem;
+}
+
+#toggleSignupPassword:hover i {
+	color: #495057;
+}
+
+#signupPassword {
+	padding-right: 42px;
+	border-radius: 6px;
+}
+
+#toggleSignupPassword {
+	position: absolute;
+	top: 40%;
+	right: 12px;
+	transform: translateY(-50%);
+	border: none;
+	background: transparent !important;
+	box-shadow: none !important;
+	z-index: 5;
+	padding: 0;
+	cursor: pointer;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#toggleSignupPassword i {
+	color: #6c757d;
+	font-size: 1rem;
+}
+
+#toggleSignupPassword:hover i {
+	color: #495057;
+}
+
+#loginPassword {
+	padding-right: 42px;
+	border-radius: 6px;
+}
+
+#toggleLoginPassword {
+	position: absolute;
+	top: 50%;
+	right: 12px;
+	transform: translateY(-50%);
+	border: none;
+	background: transparent !important;
+	box-shadow: none !important;
+	z-index: 5;
+	padding: 0;
+	cursor: pointer;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#toggleLoginPassword i {
+	color: #6c757d;
+	font-size: 1rem;
+}
+
+#toggleLoginPassword:hover i {
+	color: #495057;
+}
+
+/* ============================== */
 .auth-footer {
 	text-align: center;
 	margin-top: 20px;
@@ -116,7 +219,6 @@
 	.auth-container {
 		padding: 15px;
 	}
-
 	.auth-body {
 		padding: 20px;
 	}
