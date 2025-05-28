@@ -20,8 +20,7 @@ def dashboard():
         if current_user.privilege_level != 'super':
             pending_query = pending_query.filter_by(hospital_id=current_user.hospital_id)
         
-        # Add sorting by request date if you have that field
-        # pending_query = pending_query.order_by(User.created_at.desc())
+       
         
         pending_users = pending_query.all()
         
@@ -34,7 +33,7 @@ def dashboard():
                             current_user=current_user)
     
     # For regular users
-    return render_template('user/dashboard.html',
+    return render_template('users/dashboard.html',
                          current_user=current_user)
 
 @bp.route('/logout')

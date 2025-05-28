@@ -15,9 +15,18 @@ class Hospital(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    total_icu_beds = db.Column(db.Integer, default=0)
+    available_icu_beds = db.Column(db.Integer, default=0)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    level = db.Column(db.Integer)
+    
+    
     # Relationships
     admins = db.relationship('Admin', backref='hospital', lazy=True)
     users = db.relationship('User', backref='hospital', lazy=True)
+    
+
 
 class Admin(UserMixin, db.Model):
     """Admins table (separate from regular users)"""

@@ -1,0 +1,178 @@
+{% extends "users/base.html" %} {% block content %}
+<div class="container-fluid">
+	<div class="row mb-4">
+		<!-- Bed Statistics Cards -->
+		<div class="col-md-4">
+			<div class="card stat-card">
+				<div class="card-body">
+					<h5 class="card-title">Total Beds</h5>
+					<div class="d-flex justify-content-between align-items-center">
+						<h2 class="mb-0">{{ hospital.total_icu_beds }}</h2>
+						<div class="icon-circle bg-primary">
+							<i class="fas fa-bed"></i>
+						</div>
+					</div>
+					<p class="card-text text-muted mt-2">All ICU beds in your facility</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-md-4">
+			<div class="card stat-card">
+				<div class="card-body">
+					<h5 class="card-title">Occupied Beds</h5>
+					<div class="d-flex justify-content-between align-items-center">
+						<h2 class="mb-0">
+							{{ hospital.total_icu_beds - hospital.available_icu_beds }}
+						</h2>
+						<div class="icon-circle bg-warning">
+							<i class="fas fa-procedures"></i>
+						</div>
+					</div>
+					<p class="card-text text-muted mt-2">Currently in use</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-md-4">
+			<div class="card stat-card">
+				<div class="card-body">
+					<h5 class="card-title">Available Beds</h5>
+					<div class="d-flex justify-content-between align-items-center">
+						<h2 class="mb-0">{{ hospital.available_icu_beds }}</h2>
+						<div class="icon-circle bg-success">
+							<i class="fas fa-check-circle"></i>
+						</div>
+					</div>
+					<p class="card-text text-muted mt-2">Ready for new admissions</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Map Section -->
+	<div class="row">
+		<div class="col-12">
+			<div class="card">
+				<div class="card-header">
+					<h5 class="card-title mb-0">Kisumu County ICU Bed Availability</h5>
+				</div>
+				<div class="card-body p-0">
+					<div id="map"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+	document.addEventListener('DOMContentLoaded', function () {
+	    // Initialize map with fallback view
+	    const map = L.map('map').setView([-0.1022, 34.7617], 10);
+
+	    // Add base tiles
+	    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	        attribution: '© OpenStreetMap',
+	    }).addTo(map);
+
+	    // Load Kisumu boundary
+	    fetch("{{ url_for('user.kisumu_geojson') }}")
+	        .then((response) => response.json())
+	        .then((data) => {
+	            console.log('GeoJSON loaded:', data);
+
+	            // Handle GeometryCollection format
+	            if (data.type === 'GeometryCollection') {
+	                const multiPolygon = data.geometries.find(
+	                    (g) => g.type === 'MultiPolygon'
+	                );
+
+	                if (multiPolygon) {
+	                    const feature = {
+	                        type: 'Feature',
+	                        properties: {},
+	                        geometry: multiPolygon,
+	                    };
+
+	                    const countyLayer = L.geoJSON(feature, {
+	                        style: {
+	                            color: '#3388ff',
+	                            weight: 3,
+	                            opacity: 1,
+	                            fillOpacity: 0.2,
+	                            fillColor: '#3388ff',
+	                        },
+	                    }).addTo(map);
+
+	                    map.fitBounds(countyLayer.getBounds());
+	                    map.setMaxBounds(countyLayer.getBounds().pad(0.5));
+	                }
+	            }
+
+	            // Use hospitals data from Flask backend
+	            const hospitals = {{ hospitals_data|tojson|safe }};
+
+	            // Color coding based on availability percentage
+	            function getMarkerColor(hospital) {
+	                if (hospital.beds <= 0) return 'gray';
+	                const percentage = (hospital.available / hospital.beds) * 100;
+	                if (percentage >= 30) return 'green';
+	                if (percentage >= 10) return 'orange';
+	                return 'red';
+	            }
+
+	            // Custom icon creation
+	            function createCustomIcon(color, available) {
+	                return L.divIcon({
+	                    className: 'custom-marker',
+	                    html: `
+	                        <div class="marker-pin" style="background-color:${color}">
+	                            <span>${available}</span>
+	                        </div>
+	                    `,
+	                    iconSize: [30, 42],
+	                    iconAnchor: [15, 42],
+	                });
+	            }
+
+	            // Add hospitals with enhanced markers
+	            hospitals.forEach((hospital) => {
+	                if (!hospital.lat || !hospital.lng) return; // Skip if no coordinates
+
+	                const color = getMarkerColor(hospital);
+	                const icon = createCustomIcon(color, hospital.available);
+
+	                const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
+	                    .bindPopup(`
+	                        <div class="hospital-popup">
+	                            <h6><strong>${hospital.name}</strong></h6>
+	                            ${hospital.level ? `<p>Level: <strong>${hospital.level}</strong></p>` : ''}
+	                            <p>Total Beds: <strong>${hospital.beds}</strong></p>
+	                            <p>Available: <strong>${hospital.available}</strong></p>
+	                            ${hospital.contact ? `<p>Contact: <strong>${hospital.contact}</strong></p>` : ''}
+	                            <button class="btn btn-sm btn-primary mt-2 w-100 referral-btn"
+	                                    data-hospital="${hospital.name}"
+	                                    ${hospital.contact ? `data-contact="${hospital.contact}"` : ''}>
+	                                Request Referral
+	                            </button>
+	                        </div>
+	                    `);
+	            });
+
+	            // Handle referral button clicks
+	            map.on('popupopen', function () {
+	                document.querySelectorAll('.referral-btn').forEach((btn) => {
+	                    btn.addEventListener('click', function () {
+	                        const hospitalName = this.dataset.hospital;
+	                        const contact = this.dataset.contact || 'Not available';
+	                        alert(`Initiating referral to ${hospitalName}\nContact: ${contact}`);
+	                    });
+	                });
+	            });
+	        })
+	        .catch((error) => {
+	            console.error('Error:', error);
+	        });
+	});
+</script>
+{% endblock %}
