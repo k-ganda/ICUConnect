@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from datetime import datetime
 import os
 
 db = SQLAlchemy()
@@ -43,11 +44,32 @@ def create_app():
         from app.routes.auth import auth_bp
         from app.routes.admin import admin_bp
         from app.routes.user_routes import user_bp
+        from app.routes.admission_routes import admission_bp
+        from app.routes.discharge_routes import discharge_bp
         
         app.register_blueprint(main_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(admin_bp, url_prefix='/admin')
         app.register_blueprint(user_bp, url_prefix='/user')
+        app.register_blueprint(admission_bp, url_prefix='/admissions')
+        app.register_blueprint(discharge_bp, url_prefix='/discharges')
+        
+        
+        # Global context processor for all templates
+        @app.context_processor
+        def inject_globals():
+            def get_greeting():
+                hour = datetime.now().hour
+                if hour < 12:
+                    return 'morning'
+                elif hour < 18:
+                    return 'afternoon'
+                return 'evening'
+
+            def current_datetime():
+                return datetime.now().strftime("%A, %B %d, %Y, %I:%M:%S %p")
+
+            return dict(get_greeting=get_greeting, current_datetime=current_datetime)
         
         # Initialize database
         _initialize_database()

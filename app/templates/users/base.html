@@ -3,7 +3,6 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		
 		<title>ICUConnect - {% block title %}{% endblock %}</title>
 		<!-- Bootstrap CSS -->
 		<link
@@ -35,26 +34,34 @@
 					</button>
 				</div>
 				<ul class="list-unstyled components">
-					<ul class="list-unstyled components">
-					<li class="active">
-						<a href="{{ url_for('user.dashboard') }}"
-							><i class="fas fa-tachometer-alt"></i> Dashboard</a
-						>
+					<li
+						class="{% if request.endpoint == 'user.dashboard' %}active{% endif %}">
+						<a href="{{ url_for('user.dashboard') }}">
+							<i class="fas fa-tachometer-alt"></i> Dashboard
+						</a>
 					</li>
-                    <li>
-						<a href="#"><i class="fas fa-procedures"></i> Admissions</a>
+					<li
+						class="{% if request.endpoint == 'admission.admissions' %}active{% endif %}">
+						<a href="{{ url_for('admission.admissions') }}">
+							<i class="fas fa-procedures"></i> Admissions
+						</a>
+					</li>
+					<li
+						class="{% if request.endpoint == 'discharge.discharges' %}active{% endif %}">
+						<a href="{{ url_for('discharge.discharges') }}">
+							<i class="fas fa-hospital-user"></i> Discharges
+						</a>
 					</li>
 					<li>
-						<a href="#"><i class="fas fa-hospital-user"></i> Discharges</a>
+						<a href="#"> <i class="fas fa-exchange-alt"></i> Referrals </a>
 					</li>
 					<li>
-						<a href="#"><i class="fas fa-exchange-alt"></i> Referrals</a>
+						<a href="#"> <i class="fas fa-cog"></i> Settings </a>
 					</li>
 					<li>
-						<a href="#"><i class="fas fa-cog"></i> Settings</a>
-					</li>
-					<li>
-						<a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+						<a href="{{ url_for('auth.logout') }}">
+							<i class="fas fa-sign-out-alt"></i> Logout
+						</a>
 					</li>
 				</ul>
 				<div class="footer">
@@ -67,7 +74,7 @@
 					<div class="container-fluid">
 						<div class="time-display ms-auto">
 							<h5 id="greeting">
-								Good {{ get_greeting() }}, {{ hospital.name }}
+								Good {{ get_greeting() }}, {{ current_user.hospital.name }}
 							</h5>
 							<div id="datetime">{{ current_datetime() }}</div>
 						</div>
@@ -86,6 +93,9 @@
 				{% block content %}{% endblock %}
 			</div>
 		</div>
+
+		<!-- Modal Forms Container -->
+		<div id="modalFormsContainer">{% block modal_forms %}{% endblock %}</div>
 
 		<!-- jQuery, Bootstrap JS -->
 		<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

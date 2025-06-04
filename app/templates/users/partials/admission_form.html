@@ -1,0 +1,99 @@
+<div class="slide-in-form" id="admissionForm">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h4>New Admission</h4>
+		<button class="btn-close" id="closeFormBtn"></button>
+	</div>
+
+	<form id="admissionFormData">
+		<input type="hidden" name="hospital_id" value="{{ hospital.id }}" />
+
+		<div class="mb-3">
+			<label class="form-label">Patient Name</label>
+			<input type="text" class="form-control" name="patient_name" required />
+		</div>
+
+		<div class="row mb-3">
+			<div class="col">
+				<label class="form-label">Age</label>
+				<input type="number" class="form-control" name="age" />
+			</div>
+			<div class="col">
+				<label class="form-label">Gender</label>
+				<select class="form-select" name="gender">
+					<option value="Male">Male</option>
+					<option value="Female">Female</option>
+					<option value="Other">Other</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="mb-3">
+			<label class="form-label">Bed Assignment</label>
+			<select class="form-select" name="bed_number" id="bedSelect" required>
+				<option value="">Loading available beds...</option>
+			</select>
+			<div class="form-text">
+				Currently available:
+				<span id="availableBedsCount">{{ hospital.available_icu_beds }}</span>
+				beds
+			</div>
+		</div>
+
+		<div class="mb-3">
+			<label class="form-label">Admitting Doctor</label>
+			<input
+				type="text"
+				class="form-control"
+				name="doctor"
+				value="{{ current_user.name }}"
+				required />
+		</div>
+
+		<div class="mb-3">
+			<label class="form-label">Reason for Admission</label>
+			<textarea class="form-control" name="reason" rows="3" required></textarea>
+		</div>
+
+		<div class="mb-3">
+			<label class="form-label">Priority</label>
+			<div class="btn-group w-100" role="group">
+				<input
+					type="radio"
+					class="btn-check"
+					name="priority"
+					id="priorityLow"
+					value="Low"
+					autocomplete="off" />
+				<label class="btn btn-outline-success" for="priorityLow">Low</label>
+
+				<input
+					type="radio"
+					class="btn-check"
+					name="priority"
+					id="priorityMedium"
+					value="Medium"
+					autocomplete="off"
+					checked />
+				<label class="btn btn-outline-warning" for="priorityMedium"
+					>Medium</label
+				>
+
+				<input
+					type="radio"
+					class="btn-check"
+					name="priority"
+					id="priorityHigh"
+					value="High"
+					autocomplete="off" />
+				<label class="btn btn-outline-danger" for="priorityHigh">High</label>
+			</div>
+		</div>
+
+		<div class="d-grid gap-2">
+			<button type="submit" class="btn btn-primary">
+				<i class="fas fa-bed me-2"></i>Admit Patient
+			</button>
+		</div>
+	</form>
+</div>
+<div class="overlay" id="formOverlay"></div>

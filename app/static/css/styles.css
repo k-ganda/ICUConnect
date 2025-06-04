@@ -409,3 +409,244 @@ body {
 		padding: 1rem !important;
 	}
 }
+
+/* CSS for Admissions List */
+.date-header {
+	color: #6c757d;
+	border-bottom: 1px solid #eee;
+	padding-bottom: 8px;
+	margin-bottom: 15px;
+}
+
+/* Admission/Discharge Card Styles */
+.admission-card,
+.discharge-card {
+	display: flex;
+	align-items: flex-start;
+	padding: 1.25rem;
+	margin-bottom: 1rem;
+	background-color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	border-left: 4px solid transparent;
+}
+
+.admission-card:hover,
+.discharge-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Avatar Styles */
+.admission-avatar,
+.discharge-avatar {
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: bold;
+	margin-right: 1rem;
+	flex-shrink: 0;
+}
+
+/* Details Section */
+.admission-details,
+.discharge-details {
+	flex: 1;
+}
+
+.admission-details h6,
+.discharge-details h6 {
+	font-weight: 600;
+	margin-bottom: 0.25rem;
+	color: var(--bs-gray-800);
+}
+
+.admission-details p,
+.discharge-details p {
+	margin-top: 0.5rem;
+	color: var(--bs-gray-600);
+	font-size: 0.875rem;
+}
+
+/* Priority Badges */
+.badge {
+	font-weight: 500;
+	padding: 0.35em 0.65em;
+	font-size: 0.75em;
+	letter-spacing: 0.5px;
+}
+
+/* Status Indicators */
+.admission-card.high-priority {
+	border-left-color: var(--bs-danger);
+}
+
+.admission-card.medium-priority {
+	border-left-color: var(--bs-warning);
+}
+
+.admission-card.low-priority {
+	border-left-color: var(--bs-success);
+}
+
+.discharge-card {
+	border-left-color: var(--bs-info);
+}
+
+/* Summary Cards Enhancement */
+.stat-card {
+	border-radius: 0.5rem;
+	border: none;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+	transform: translateY(-3px);
+}
+
+.stat-card .card-subtitle {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+	opacity: 0.8;
+}
+
+.stat-card h2 {
+	font-size: 1.75rem;
+}
+
+/* Slide-in Form Container */
+.slide-in-form {
+	position: fixed;
+	top: 0;
+	right: -400px;
+	width: 400px;
+	height: 100vh;
+	background: white;
+	box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+	z-index: 1050;
+	transition: right 0.3s ease-out;
+	padding: 20px;
+	overflow-y: auto;
+}
+
+.slide-in-form.show {
+	right: 0;
+}
+
+/* Overlay when form is open */
+.overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 1040;
+	display: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+	.admission-card,
+	.discharge-card {
+		flex-direction: column;
+	}
+
+	.admission-avatar,
+	.discharge-avatar {
+		margin-bottom: 1rem;
+		margin-right: 0;
+	}
+}
+
+/* ============================== */
+/* Admissions Page Specific Styles */
+/* ============================== */
+.admissions-page {
+	background-color: whitesmoke;
+}
+
+.admissions-page h2.fw-bold {
+	font-size: 1.8rem;
+	letter-spacing: -0.5px;
+	color: #2c3e50;
+}
+
+.admissions-page .stat-card {
+	background-color: white;
+	border: none;
+	border-left: 5px solid transparent;
+	border-radius: 8px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admissions-page .stat-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admissions-page .stat-card .card-subtitle {
+	color: #6c757d;
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+}
+
+.admissions-page .stat-card h2 {
+	font-size: 1.75rem;
+	color: #2c3e50;
+}
+
+.admissions-page .admissions-table {
+	margin-bottom: 0;
+}
+
+.admissions-page .admissions-table thead th {
+	border-top: none;
+	border-bottom: 1px solid #e9ecef;
+	font-weight: 600;
+	color: #6c757d;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.5px;
+}
+
+.admissions-page .admissions-table tbody tr {
+	transition: background-color 0.2s ease;
+}
+
+.admissions-page .admissions-table tbody tr:hover {
+	background-color: #f8f9fa;
+}
+
+.admissions-page .patient-initials {
+	color: #3498db;
+	margin-right: 8px;
+}
+
+.admissions-page .btn-primary {
+	background-color: #3498db;
+	border: none;
+	padding: 8px 16px;
+	border-radius: 6px;
+}
+
+.admissions-page .btn-primary:hover {
+	background-color: #2980b9;
+}
+
+@media (max-width: 768px) {
+	.admissions-page .stat-card {
+		margin-bottom: 1rem;
+	}
+}

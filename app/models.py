@@ -83,3 +83,41 @@ def load_user(user_id):
     if admin:
         return admin
     return User.query.get(int(user_id))
+
+class Admission(db.Model):
+    __tablename__ = 'admissions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    patient_name = db.Column(db.String(100), nullable=False)
+    bed_number = db.Column(db.Integer, nullable=False)
+    doctor = db.Column(db.String(100), nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    priority = db.Column(db.String(20), default='Medium')  # High/Medium/Low
+    admission_time = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    @property
+    def patient_initials(self):
+        return ''.join([name[0] for name in self.patient_name.split()[:2]]).upper()
+    
+
+class Discharge(db.Model):
+    __tablename__ = 'discharges'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    patient_name = db.Column(db.String(100), nullable=False)
+    bed_number = db.Column(db.Integer, nullable=False)
+    admission_time = db.Column(db.DateTime, nullable=False)
+    discharge_time = db.Column(db.DateTime, default=datetime.utcnow)
+    discharging_doctor = db.Column(db.String(100), nullable=False)
+    discharge_type = db.Column(db.String(50), nullable=False)  # Recovered/Transferred/Other
+    notes = db.Column(db.Text)
+    
+    @property
+    def patient_initials(self):
+        return ''.join([name[0] for name in self.patient_name.split()[:2]]).upper()
+    
+    @property
+    def length_of_stay(self):
+        return (self.discharge_time - self.admission_time).days

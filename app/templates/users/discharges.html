@@ -1,0 +1,71 @@
+{% extends "users/base.html" %} {% block content %}
+<div class="container-fluid">
+	<!-- Header Section -->
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h2>Patient Discharges</h2>
+		<button class="btn btn-primary" id="newDischargeBtn">
+			<i class="fas fa-sign-out-alt me-2"></i>New Discharge
+		</button>
+	</div>
+
+	<!-- Summary Cards -->
+	<div class="row mb-4">
+		<div class="col-md-4">
+			<div class="card stat-card">
+				<div class="card-body">
+					<h5 class="card-title">Today's Discharges</h5>
+					<h2 class="mb-0">{{ today_discharges_count }}</h2>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="card stat-card">
+				<div class="card-body">
+					<h5 class="card-title">Avg. Stay Duration</h5>
+					<h2 class="mb-0">3.2 days</h2>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Discharges List -->
+	<div class="card">
+		<div class="card-body">
+			{% for date, discharges in discharges_by_date.items() %}
+			<div class="date-group mb-4">
+				<h5 class="date-header">
+					{% if date == today %}Today {% elif date == yesterday %}Yesterday {%
+					else %}{{ date.strftime('%B %d') }} {% endif %}
+				</h5>
+
+				{% for discharge in discharges %}
+				<div class="discharge-card">
+					<div class="discharge-avatar bg-success">
+						{{ discharge.patient_initials }}
+					</div>
+					<div class="discharge-details">
+						<div class="d-flex justify-content-between">
+							<h6>{{ discharge.patient_name }}</h6>
+							<span class="badge bg-info">{{ discharge.discharge_type }}</span>
+						</div>
+						<div class="text-muted small">
+							<span>Bed {{ discharge.bed_number }}</span> •
+							<span>{{ discharge.discharge_time.strftime('%I:%M %p') }}</span> •
+							<span>{{ discharge.length_of_stay }} days</span>
+						</div>
+						<p class="mb-0">
+							Discharged by Dr. {{ discharge.discharging_doctor }}
+						</p>
+					</div>
+				</div>
+				{% endfor %}
+			</div>
+			{% endfor %}
+		</div>
+	</div>
+</div>
+
+{% include 'users/partials/discharge_form.html' %} {% endblock %} {% block
+scripts %}
+<script src="{{ url_for('static', filename='js/discharges.js') }}"></script>
+{% endblock %}

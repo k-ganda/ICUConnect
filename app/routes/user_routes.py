@@ -36,19 +36,6 @@ def dashboard():
                          },
                          hospitals_data=hospitals_data)
 
-# Context processors
-@user_bp.context_processor
-def utility_processor():
-    def get_greeting():
-        hour = datetime.now().hour
-        if hour < 12: return 'morning'
-        elif hour < 18: return 'afternoon'
-        return 'evening'
-    
-    def current_datetime():
-        return datetime.now().strftime("%A, %B %d, %Y, %I:%M:%S %p")
-    
-    return dict(get_greeting=get_greeting, current_datetime=current_datetime)
 
 @user_bp.route('/kisumu-geojson')
 def kisumu_geojson():
