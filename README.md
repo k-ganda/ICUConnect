@@ -119,6 +119,8 @@ https://data.ontario.ca/dataset/availability-of-adult-icu-beds-and-occupancy-for
 
 ## Demo Video
 
+https://www.youtube.com/watch?v=5yo5O3M0HZU
+
 ## Tools & Technologies
 
 Flask – Backend web framework
@@ -134,5 +136,7 @@ Jupyter Notebook – ML Model Development
 ## Author
 
 Kathrine Ganda
-k.ganda@alustudent.com
+
+k.ganda@alustudent.com 
+
 Final Year Capstone Project - African Leadership University
