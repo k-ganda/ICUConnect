@@ -50,7 +50,7 @@ You will be able to sign up, but login is restricted to verified users only due 
 
 ### Model Notebook
 
-he machine learning model notebook can be found in
+The machine learning model notebook can be found in
 
 ```
 notebook/Predict_Occupancy_fixed.ipynb
