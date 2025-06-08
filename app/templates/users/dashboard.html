@@ -7,7 +7,7 @@
 				<div class="card-body">
 					<h5 class="card-title">Total Beds</h5>
 					<div class="d-flex justify-content-between align-items-center">
-						<h2 class="mb-0">{{ hospital.total_icu_beds }}</h2>
+						<h2 class="mb-0">{{ hospital.total_beds }}</h2>
 						<div class="icon-circle bg-primary">
 							<i class="fas fa-bed"></i>
 						</div>
@@ -23,7 +23,7 @@
 					<h5 class="card-title">Occupied Beds</h5>
 					<div class="d-flex justify-content-between align-items-center">
 						<h2 class="mb-0">
-							{{ hospital.total_icu_beds - hospital.available_icu_beds }}
+							{{ hospital.total_beds - hospital.available_beds }}
 						</h2>
 						<div class="icon-circle bg-warning">
 							<i class="fas fa-procedures"></i>
@@ -39,7 +39,7 @@
 				<div class="card-body">
 					<h5 class="card-title">Available Beds</h5>
 					<div class="d-flex justify-content-between align-items-center">
-						<h2 class="mb-0">{{ hospital.available_icu_beds }}</h2>
+						<h2 class="mb-0">{{ hospital.available_beds }}</h2>
 						<div class="icon-circle bg-success">
 							<i class="fas fa-check-circle"></i>
 						</div>

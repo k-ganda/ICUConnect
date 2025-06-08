@@ -15,26 +15,25 @@ def dashboard():
         flash('Hospital not found', 'danger')
         return redirect(url_for('auth.login'))
     
+    # Get all hospitals for map display
     all_hospitals = Hospital.query.all()
     
-    # Hospital data for map
+    # Hospital data for map (keeps lightweight dicts for JS map use)
     hospitals_data = [{
         'name': h.name,
         'lat': h.latitude,
         'lng': h.longitude,
-        'level': h.level,   # Add this field if needed
-        'beds': h.total_icu_beds,
-        'available': h.available_icu_beds
-        
+        'level': h.level,
+        'beds': h.total_beds,
+        'available': h.available_beds
     } for h in all_hospitals]
     
-    return render_template('users/dashboard.html',
-                         hospital={
-                             'name': hospital.name,
-                             'total_icu_beds': hospital.total_icu_beds or 0,
-                             'available_icu_beds': hospital.available_icu_beds or 0
-                         },
-                         hospitals_data=hospitals_data)
+    # Pass full model instance to template (so Jinja can access all properties)
+    return render_template(
+        'users/dashboard.html',
+        hospital=hospital,
+        hospitals_data=hospitals_data
+    )
 
 
 @user_bp.route('/kisumu-geojson')

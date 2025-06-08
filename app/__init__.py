@@ -14,20 +14,17 @@ def create_app():
     # Configure database URI to point explicitly to instance folder
     app.config.from_mapping(
         SECRET_KEY='dev',
-        SQLALCHEMY_DATABASE_URI='sqlite:///' + os.path.join(app.instance_path, 'icuconnect.db') + '?check_same_thread=False',
+        SQLALCHEMY_DATABASE_URI='postgresql://flaskuser:icu123@localhost/icuconnectdb',
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_size': 10,
+            'max_overflow': 20,
             'pool_pre_ping': True,
-            'pool_recycle': 3600,
+            'pool_recycle': 3600
         }
     )
-
-    # Ensure instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
-
+    
+    # Initialize extensions
     db.init_app(app)
     migrate = Migrate(app, db)
     login_manager.init_app(app)
@@ -72,33 +69,50 @@ def create_app():
             return dict(get_greeting=get_greeting, current_datetime=current_datetime)
         
         # Initialize database
-        _initialize_database()
+        _initialize_database(app)
 
     return app
 
-def _initialize_database():
-    """Initialize database with proper error handling"""
+def _initialize_database(app, reset=False):
+    """Initialize or update the PostgreSQL database."""
+    from flask_migrate import init, migrate, upgrade
     from app.models import Hospital, Admin
-    
+    import shutil
+    import os
+
     try:
-        # Create tables if they don't exist
+        # Migration setup (same as before)
+        migrations_path = os.path.join(os.getcwd(), 'migrations')
+        if reset and os.path.exists(migrations_path):
+            shutil.rmtree(migrations_path)
+
+        if not os.path.exists(migrations_path):
+            init(directory=migrations_path)
+
+        migrate(message='Initial migration', directory=migrations_path)
+        upgrade(directory=migrations_path)
+
+        # Create tables
         db.create_all()
-        
-        # Create first admin if none exists
-        if not Admin.query.first():
+
+        # Check if system hospital exists before creating
+        if not Hospital.query.filter_by(name="System Hospital").first():
             hospital = Hospital(name="System Hospital", verification_code="SYSADMIN")
             db.session.add(hospital)
             db.session.commit()
-            
-            admin = Admin(
-                hospital_id=hospital.id,
-                email="admin@icuconnect.com",
-                privilege_level="super"
-            )
-            admin.set_password("temp1234")
-            db.session.add(admin)
-            db.session.commit()
+
+            # Only create admin if it doesn't exist
+            if not Admin.query.first():
+                admin = Admin(
+                    hospital_id=hospital.id,
+                    email="admin@icuconnect.com",
+                    privilege_level="super"
+                )
+                admin.set_password("temp1234")
+                db.session.add(admin)
+                db.session.commit()
+
     except Exception as e:
         db.session.rollback()
-        print(f"Database initialization error: {str(e)}")
+        app.logger.error(f"Database initialization error: {str(e)}")
         raise

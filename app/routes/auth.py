@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash
-from flask_login import login_user, logout_user
+from flask_login import login_user, logout_user, current_user
 from app.models import Hospital, User, Admin
 from app import db
 import logging
@@ -33,7 +33,7 @@ def login():
                 login_user(user, remember=False)
                 flash('Login successful!', 'success')
                 return redirect(url_for('user.dashboard'))
-        
+            
         flash('Invalid credentials or unapproved account', 'danger')
     
     return render_template('auth/login.html')
@@ -42,43 +42,48 @@ def login():
 def signup():
     if request.method == 'POST':
         try:
-            logger.debug("Form data: %s", request.form)
-            
-            # Validate required fields
+            logger.debug(f"Raw form data: {request.form}")
+
+            # Validate and sanitize inputs
             required = {
-                'email': request.form.get('email'),
-                'password': request.form.get('password'),
-                'name': request.form.get('name'),
+                'email': request.form.get('email', '').strip(),
+                'password': request.form.get('password', '').strip(),
+                'name': request.form.get('name', '').strip(),
                 'hospital': request.form.get('hospital'),
-                'employee_id': request.form.get('employee_id')
+                'employee_id': request.form.get('employee_id', '').strip()
             }
-            
+
+            # Check for empty fields
             if not all(required.values()):
                 missing = [k for k, v in required.items() if not v]
-                logger.warning("Missing fields: %s", missing)
-                flash(f"Missing required fields: {', '.join(missing)}", 'danger')
-                return render_template('auth/signup.html', 
+                error_msg = f"Missing required fields: {', '.join(missing)}"
+                logger.warning(error_msg)
+                return render_template('auth/signup.html',
                                     hospitals=Hospital.query.filter_by(is_active=True).all(),
-                                    show_success_modal=False)
-            
-            # Verify hospital exists
+                                    show_error_modal=True,
+                                    error_message=error_msg)
+
+            # Validate hospital
             hospital = Hospital.query.get(required['hospital'])
             if not hospital:
-                logger.error("Invalid hospital ID: %s", required['hospital'])
-                flash("Invalid hospital selection", 'danger')
-                return render_template('auth/signup.html', 
+                error_msg = "Invalid hospital selected"
+                logger.error(error_msg)
+                return render_template('auth/signup.html',
                                     hospitals=Hospital.query.filter_by(is_active=True).all(),
-                                    show_success_modal=False)
-            
-            # Check for existing email
-            if User.query.filter_by(email=required['email']).first():
-                logger.warning("Duplicate email: %s", required['email'])
-                flash("Email already registered", 'danger')
-                return render_template('auth/signup.html', 
+                                    show_error_modal=True,
+                                    error_message=error_msg)
+
+            # Check for duplicate email (User and Admin tables)
+            if User.query.filter_by(email=required['email']).first() or \
+               Admin.query.filter_by(email=required['email']).first():
+                error_msg = "Email already registered"
+                logger.warning(error_msg)
+                return render_template('auth/signup.html',
                                     hospitals=Hospital.query.filter_by(is_active=True).all(),
-                                    show_success_modal=False)
-            
-            # Create new user
+                                    show_error_modal=True,
+                                    error_message=error_msg)
+
+            # Create user
             new_user = User(
                 email=required['email'],
                 name=required['name'],
@@ -87,28 +92,28 @@ def signup():
                 is_approved=False
             )
             new_user.set_password(required['password'])
-            
+
             db.session.add(new_user)
             db.session.commit()
-            logger.info("New user created: %s", new_user.email)
-            
-            # Render with success modal
+
+            logger.info(f"User created: {new_user.email}")
             return render_template('auth/signup.html',
-                                 hospitals=Hospital.query.filter_by(is_active=True).all(),
-                                 show_success_modal=True)
-            
+                                hospitals=Hospital.query.filter_by(is_active=True).all(),
+                                show_success_modal=True)
+
         except Exception as e:
             db.session.rollback()
-            logger.exception("Signup failed")
-            flash(f"Signup error: {str(e)}", 'danger')
-            return render_template('auth/signup.html', 
+            logger.exception(f"Signup failed: {str(e)}")
+            return render_template('auth/signup.html',
                                 hospitals=Hospital.query.filter_by(is_active=True).all(),
-                                show_success_modal=False)
-    
+                                show_error_modal=True,
+                                error_message=f"Server error: {str(e)}")
+
     # GET request
     return render_template('auth/signup.html',
                          hospitals=Hospital.query.filter_by(is_active=True).all(),
-                         show_success_modal=False)
+                         show_success_modal=False,
+                         show_error_modal=False)
 
 @auth_bp.route('/logout')
 def logout():

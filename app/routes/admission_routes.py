@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from app import db
-from app.models import Hospital, Admission
+from app.models import Hospital, Admission, Bed
 
 admission_bp = Blueprint('admission', __name__)
 
@@ -37,9 +37,17 @@ def admissions():
 @login_required
 def available_beds():
     hospital = Hospital.query.get(current_user.hospital_id)
+    available_beds = Bed.query.filter_by(
+        hospital_id=hospital.id, 
+        is_occupied=False
+    ).order_by(Bed.bed_number.asc()).all()  # Sort by bed number
+
     return jsonify({
-        'availableBeds': [{'id': i, 'number': i} for i in range(1, hospital.available_icu_beds + 1)],
-        'count': hospital.available_icu_beds
+        'availableBeds': [{
+            'id': bed.id,           # Include bed ID for submission
+            'number': bed.bed_number  # Match frontend expectation
+        } for bed in available_beds],
+        'count': len(available_beds)
     })
 
 @admission_bp.route('/api/admit', methods=['POST'])
@@ -47,29 +55,35 @@ def available_beds():
 def admit_patient():
     try:
         hospital = Hospital.query.get(current_user.hospital_id)
-        
+        bed_id = request.json['bed_id']
+        bed = Bed.query.get(bed_id)
+
+        if not bed or bed.is_occupied or bed.hospital_id != hospital.id:
+            return jsonify({
+                'success': False,
+                'message': 'Selected bed is not available'
+            }), 400
+
         # Create new admission
         admission = Admission(
             hospital_id=hospital.id,
             patient_name=request.json['patient_name'],
-            bed_number=request.json['bed_number'],
+            bed_number=bed.bed_number,
             doctor=request.json['doctor'],
             reason=request.json['reason'],
             priority=request.json['priority'],
             admission_time=datetime.utcnow()
         )
-        
-        # Update hospital bed count
-        hospital.available_icu_beds -= 1
-        
+
+        bed.is_occupied = True
         db.session.add(admission)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': 'Patient admitted successfully',
-            'availableBeds': hospital.available_icu_beds
+            'message': 'Patient admitted successfully'
         })
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
