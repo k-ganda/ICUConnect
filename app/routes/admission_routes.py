@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, current_app, g
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-
 from sqlalchemy import func, cast, Date, Interval
 from app import db
 from app.models import Hospital, Admission, Bed
+from app.utils import get_current_local_time, to_utc_time, to_local_time, local_date_to_utc, get_local_timezone
+import pytz
 
 admission_bp = Blueprint('admission', __name__)
 
@@ -12,7 +13,8 @@ admission_bp = Blueprint('admission', __name__)
 @login_required
 def admissions():
     hospital = Hospital.query.get(current_user.hospital_id)
-    today = datetime.now().date()
+    now = get_current_local_time(hospital)
+    today = now.date()
     yesterday = today - timedelta(days=1)
     last_week = today - timedelta(days=7)
 
@@ -23,7 +25,7 @@ def admissions():
     # Query for all recent admissions (last 7 days)
     base_query = Admission.query.filter(
         Admission.hospital_id == hospital.id,
-        Admission.admission_time >= datetime.now() - timedelta(days=7)
+        Admission.admission_time >= local_date_to_utc(last_week, hospital)
     ).order_by(Admission.admission_time.desc())
 
     total_admissions = base_query.count()
@@ -64,10 +66,10 @@ def admissions():
     # Percentage change for patients
     patients_change = calculate_percentage_change(current_patients_count, yesterday_patients)
 
-    # Avg length of stay calculations (unchanged)
+    # Avg length of stay calculations
     current_avg_stay = db.session.query(
         func.avg(
-            func.extract('epoch', func.coalesce(Admission.discharge_time, datetime.utcnow()) - Admission.admission_time) / 86400.0
+            func.extract('epoch', func.coalesce(Admission.discharge_time, to_utc_time(now, hospital)) - Admission.admission_time) / 86400.0
         )
     ).filter(
         Admission.hospital_id == hospital.id,
@@ -76,12 +78,12 @@ def admissions():
 
     previous_avg_stay = db.session.query(
         func.avg(
-            func.extract('epoch', func.coalesce(Admission.discharge_time, datetime.utcnow()) - Admission.admission_time) / 86400.0
+            func.extract('epoch', func.coalesce(Admission.discharge_time, to_utc_time(now, hospital)) - Admission.admission_time) / 86400.0
         )
     ).filter(
         Admission.hospital_id == hospital.id,
-        Admission.admission_time >= last_week,
-        Admission.admission_time < today - timedelta(days=1)
+        Admission.admission_time >= local_date_to_utc(last_week, hospital),
+        Admission.admission_time < local_date_to_utc(today - timedelta(days=1), hospital)
     ).scalar() or 0
 
     stay_improvement = 0
@@ -100,9 +102,8 @@ def admissions():
                          yesterday=yesterday,
                          avg_length_of_stay=round(current_avg_stay, 1),
                          page=page,
-                         total_pages=total_pages)
-
-
+                         total_pages=total_pages,
+                         total_admissions=total_admissions)
 
 def calculate_percentage_change(current_value, previous_value):
     if previous_value > 0:
@@ -130,9 +131,8 @@ def available_beds():
 def admit_patient():
     try:
         hospital = Hospital.query.get(current_user.hospital_id)
-        bed_number = request.json['bed_number']  # Changed from bed_id to bed_number
+        bed_number = request.json['bed_number']
         
-        # Find bed by number instead of ID
         bed = Bed.query.filter_by(
             hospital_id=hospital.id,
             bed_number=bed_number,
@@ -145,18 +145,17 @@ def admit_patient():
                 'message': 'Selected bed is not available'
             }), 400
 
-        # Create new admission
+        # Create new admission with current local time converted to UTC
         admission = Admission(
             hospital_id=hospital.id,
             patient_name=request.json['patient_name'],
-            bed_id=bed.id,  # Still use bed.id for the relationship
-            
+            bed_id=bed.id,
             doctor=request.json['doctor'],
             reason=request.json['reason'],
             priority=request.json['priority'],
             age=request.json['age'],
             gender=request.json['gender'],
-            admission_time=datetime.utcnow()
+            admission_time=to_utc_time(get_current_local_time(hospital), hospital)
         )
 
         bed.is_occupied = True
@@ -164,10 +163,9 @@ def admit_patient():
         db.session.commit()
 
         return jsonify({
-    'success': True,
-    'message': 'Patient admitted successfully'
-}), 200
-
+            'success': True,
+            'message': 'Patient admitted successfully'
+        }), 200
 
     except Exception as e:
         db.session.rollback()
@@ -175,3 +173,42 @@ def admit_patient():
             'success': False,
             'message': str(e)
         }), 400
+
+@admission_bp.route('/timezone-test')
+@login_required
+def timezone_test():
+    hospital = Hospital.query.get(current_user.hospital_id)
+    now = datetime.utcnow()
+    
+    # Get various time representations
+    utc_time = now
+    local_time = to_local_time(now, hospital)
+    current_local = get_current_local_time(hospital)
+    
+    # Get timezone info
+    timezone = get_local_timezone(hospital)
+    tz_info = pytz.timezone(timezone)
+    
+    # Create a sample admission time (1 hour ago)
+    one_hour_ago_utc = now - timedelta(hours=1)
+    one_hour_ago_local = to_local_time(one_hour_ago_utc, hospital)
+    
+    # Test date conversion
+    today = current_local.date()
+    today_utc = local_date_to_utc(today, hospital)
+    
+    timezone_info = {
+        'hospital_name': hospital.name,
+        'hospital_timezone': timezone,
+        'timezone_offset': tz_info.utcoffset(now).total_seconds() / 3600,  # Convert to hours
+        'current_utc': utc_time.strftime('%Y-%m-%d %H:%M:%S UTC'),
+        'current_local': current_local.strftime('%Y-%m-%d %H:%M:%S %Z'),
+        'one_hour_ago_utc': one_hour_ago_utc.strftime('%Y-%m-%d %H:%M:%S UTC'),
+        'one_hour_ago_local': one_hour_ago_local.strftime('%Y-%m-%d %H:%M:%S %Z'),
+        'today_local': today.strftime('%Y-%m-%d'),
+        'today_utc': today_utc.strftime('%Y-%m-%d %H:%M:%S UTC'),
+        'system_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'system_timezone': datetime.now().astimezone().tzname()
+    }
+    
+    return render_template('users/timezone_test.html', timezone_info=timezone_info)

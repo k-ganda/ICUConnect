@@ -4,6 +4,7 @@ from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from datetime import datetime
 import os
+from app.utils import get_current_local_time, to_local_time
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -66,7 +67,7 @@ def create_app():
         @app.context_processor
         def inject_globals():
             def get_greeting():
-                hour = datetime.now().hour
+                hour = get_current_local_time().hour
                 if hour < 12:
                     return 'morning'
                 elif hour < 18:
@@ -74,7 +75,7 @@ def create_app():
                 return 'evening'
 
             def current_datetime():
-                return datetime.now().strftime("%A, %B %d, %Y, %I:%M:%S %p")
+                return get_current_local_time().strftime("%A, %B %d, %Y, %I:%M:%S %p")
 
             return dict(get_greeting=get_greeting, current_datetime=current_datetime)
         

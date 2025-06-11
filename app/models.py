@@ -2,6 +2,8 @@ from app import db, login_manager
 from flask_login import UserMixin
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.utils import to_local_time, to_utc_time, get_current_local_time
+import pytz
 
 
 
@@ -17,6 +19,7 @@ class Hospital(db.Model):
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     level = db.Column(db.Integer)
+    timezone = db.Column(db.String(50), default='Africa/Kigali')  # Default to Rwanda timezone
     
     @property
     def total_beds(self):
@@ -31,6 +34,10 @@ class Hospital(db.Model):
     admins = db.relationship('Admin', backref='hospital', lazy=True)
     users = db.relationship('User', backref='hospital', lazy=True)
     
+    def get_timezone(self):
+        """Get the timezone object for this hospital"""
+        return pytz.timezone(self.timezone)
+
 
 
 class Admin(UserMixin, db.Model):
@@ -127,12 +134,22 @@ class Admission(db.Model):
     priority = db.Column(db.String(20), default='Medium')  # High/Medium/Low
     age = db.Column(db.Integer, nullable=True)
     gender = db.Column(db.String(10), nullable=True)
-    admission_time = db.Column(db.DateTime, default=datetime.now)
+    admission_time = db.Column(db.DateTime, default=datetime.utcnow)
     discharge_time = db.Column(db.DateTime)
     status = db.Column(db.String(20), default='Active')
     
     # Relationships
     bed = db.relationship('Bed', back_populates='current_admission')
+    
+    @property
+    def local_admission_time(self):
+        """Get admission time in local timezone"""
+        return to_local_time(self.admission_time)
+    
+    @property
+    def local_discharge_time(self):
+        """Get discharge time in local timezone"""
+        return to_local_time(self.discharge_time)
     
     @property
     def masked_patient_name(self):
@@ -147,8 +164,7 @@ class Admission(db.Model):
     def length_of_stay(self):
         if self.discharge_time:
             return (self.discharge_time - self.admission_time).total_seconds() / 86400  # in days
-        return (datetime.now() - self.admission_time).total_seconds() / 86400
-    
+        return (datetime.utcnow() - self.admission_time).total_seconds() / 86400
 
 class Discharge(db.Model):
     __tablename__ = 'discharges'
@@ -158,14 +174,23 @@ class Discharge(db.Model):
     patient_name = db.Column(db.String(100), nullable=False)
     bed_number = db.Column(db.Integer, nullable=False)
     admission_time = db.Column(db.DateTime, nullable=False)
-    discharge_time = db.Column(db.DateTime, default=datetime.now)
+    discharge_time = db.Column(db.DateTime, default=datetime.utcnow)
     discharging_doctor = db.Column(db.String(100), nullable=False)
     discharge_type = db.Column(db.String(50), nullable=False)  # Recovered/Transferred/Other
     notes = db.Column(db.Text)
     
     @property
+    def local_admission_time(self):
+        """Get admission time in local timezone"""
+        return to_local_time(self.admission_time)
+    
+    @property
+    def local_discharge_time(self):
+        """Get discharge time in local timezone"""
+        return to_local_time(self.discharge_time)
+    
+    @property
     def patient_initials(self):
-        
         return ''.join([name[0] for name in self.patient_name.split()[:2]]).upper()
     
     @property

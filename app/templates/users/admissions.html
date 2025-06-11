@@ -93,9 +93,11 @@
 							<td>{{ admission.age }} / {{ admission.gender[0] }}</td>
 							<td>{{ admission.bed.bed_number }}</td>
 							<!-- Changed to use relationship -->
-							<td>Dr. {{ admission.doctor }}</td>
+							<td>{{ admission.doctor }}</td>
 							<td>{{ admission.reason }}</td>
-							<td>{{ admission.admission_time.strftime('%Y-%m-%d %H:%M') }}</td>
+							<td>
+								{{ admission.local_admission_time.strftime('%Y-%m-%d %H:%M') }}
+							</td>
 							<td>
 								<span
 									class="badge bg-{% if admission.status == 'Active' %}success{% else %}secondary{% endif %}">
@@ -108,7 +110,7 @@
 				</table>
 			</div>
 			<div class="mt-3 text-muted">
-				Showing {{ recent_admissions|length }} of {{ current_patients_count }}
+				Showing {{ recent_admissions|length }} of {{ total_admissions }}
 				patients
 			</div>
 			<nav aria-label="Admissions pagination" class="mt-3">

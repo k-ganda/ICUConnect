@@ -1,0 +1,79 @@
+{% extends "users/base.html" %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+        <h2 class="fw-bold">Timezone Test Page</h2>
+        <a href="{{ url_for('admission.admissions') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Admissions
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-4">Hospital Timezone Information</h5>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-4">
+                        <h6 class="text-muted">Hospital Details</h6>
+                        <p><strong>Hospital Name:</strong> {{ timezone_info.hospital_name }}</p>
+                        <p><strong>Timezone:</strong> {{ timezone_info.hospital_timezone }}</p>
+                        <p><strong>UTC Offset:</strong> UTC{{ "+" if timezone_info.timezone_offset >= 0 else "" }}{{ timezone_info.timezone_offset }}:00</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-muted">System Information</h6>
+                        <p><strong>System Time:</strong> {{ timezone_info.system_time }}</p>
+                        <p><strong>System Timezone:</strong> {{ timezone_info.system_timezone }}</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-4">
+                        <h6 class="text-muted">Current Time</h6>
+                        <p><strong>UTC Time:</strong> {{ timezone_info.current_utc }}</p>
+                        <p><strong>Local Time:</strong> {{ timezone_info.current_local }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-muted">Sample Times (1 hour ago)</h6>
+                        <p><strong>UTC Time:</strong> {{ timezone_info.one_hour_ago_utc }}</p>
+                        <p><strong>Local Time:</strong> {{ timezone_info.one_hour_ago_local }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-muted">Date Conversion Test</h6>
+                        <p><strong>Today (Local):</strong> {{ timezone_info.today_local }}</p>
+                        <p><strong>Today (UTC):</strong> {{ timezone_info.today_utc }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4">
+                <h6 class="alert-heading">How to Verify Timezone Changes</h6>
+                <ol class="mb-0">
+                    <li>Check that the "Hospital Timezone" matches your expected timezone</li>
+                    <li>Verify that the "UTC Offset" is correct for your location</li>
+                    <li>Compare the "Current Local Time" with your actual local time</li>
+                    <li>Verify that "One Hour Ago" times show the correct time difference</li>
+                    <li>Check that date conversions maintain the correct day in both timezones</li>
+                </ol>
+            </div>
+
+            <div class="alert alert-warning mt-3">
+                <h6 class="alert-heading">To Change Timezone</h6>
+                <p class="mb-0">Run this SQL command in your database:</p>
+                <pre class="mt-2 mb-0"><code>UPDATE hospital SET timezone = 'Africa/Nairobi' WHERE id = <hospital_id>;</code></pre>
+                <p class="mt-2 mb-0">Common timezones:</p>
+                <ul class="mb-0">
+                    <li>Rwanda: 'Africa/Kigali' (UTC+2)</li>
+                    <li>Kenya: 'Africa/Nairobi' (UTC+3)</li>
+                    <li>Uganda: 'Africa/Kampala' (UTC+3)</li>
+                    <li>Tanzania: 'Africa/Dar_es_Salaam' (UTC+3)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
