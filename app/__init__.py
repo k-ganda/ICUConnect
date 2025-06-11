@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from datetime import datetime
 import os
@@ -34,6 +34,16 @@ def create_app():
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         db.session.remove()
+        
+    @app.context_processor
+    def inject_user_data():
+        """Makes user data available in all templates"""
+        if current_user.is_authenticated and hasattr(current_user, 'get_type'):
+            return {
+                'current_user_type': current_user.get_type(),
+                'current_user_hospital': current_user.get_hospital()
+            }
+        return {}
 
     with app.app_context():
         # Register blueprints

@@ -1,24 +1,23 @@
-from flask import Blueprint, flash, redirect, render_template, send_from_directory, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, send_from_directory, url_for
 from flask_login import login_required, current_user
 from datetime import datetime
-from app.models import Hospital
+from app.models import Hospital, Admin
 
 user_bp = Blueprint('user', __name__)
 
 @user_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # Get real hospital data for logged-in user
-    hospital = Hospital.query.get(current_user.hospital_id)
+    # Prevent admin from accessing user dashboard
+    if isinstance(current_user, Admin):
+        abort(403)
     
+    hospital = Hospital.query.get(current_user.hospital_id)
     if not hospital:
         flash('Hospital not found', 'danger')
         return redirect(url_for('auth.login'))
     
-    # Get all hospitals for map display
     all_hospitals = Hospital.query.all()
-    
-    # Hospital data for map (keeps lightweight dicts for JS map use)
     hospitals_data = [{
         'name': h.name,
         'lat': h.latitude,
@@ -28,13 +27,11 @@ def dashboard():
         'available': h.available_beds
     } for h in all_hospitals]
     
-    # Pass full model instance to template (so Jinja can access all properties)
     return render_template(
         'users/dashboard.html',
         hospital=hospital,
         hospitals_data=hospitals_data
     )
-
 
 @user_bp.route('/kisumu-geojson')
 def kisumu_geojson():

@@ -16,24 +16,24 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # Try admin first
+        # Try ADMIN first
         admin = Admin.query.filter_by(email=email).first()
         if admin and admin.check_password(password):
             login_user(admin)
             flash('Admin login successful!', 'success')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('admin.dashboard'))  # Explicit admin route
         
-        # Then try user
+        # Then try USER
         user = User.query.filter_by(email=email).first()
         if user:
             if not user.is_approved:
                 flash('Your account is pending approval', 'warning')
                 return redirect(url_for('auth.login'))
             if user.check_password(password):
-                login_user(user, remember=False)
+                login_user(user)
                 flash('Login successful!', 'success')
-                return redirect(url_for('user.dashboard'))
-            
+                return redirect(url_for('user.dashboard'))  # Explicit user route
+        
         flash('Invalid credentials or unapproved account', 'danger')
     
     return render_template('auth/login.html')

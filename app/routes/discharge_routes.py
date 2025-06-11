@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from app import db
 from app.models import Discharge, Admission
+from sqlalchemy.orm import joinedload
 
 discharge_bp = Blueprint('discharge', __name__)
 
@@ -35,18 +36,23 @@ def discharges():
 @discharge_bp.route('/api/current-patients')
 @login_required
 def current_patients():
-    patients = Admission.query.filter_by(
-        hospital_id=current_user.hospital_id,
-        discharged=False
-    ).all()
-    
-    return jsonify({
-        'patients': [{
-            'id': p.id,
-            'name': p.patient_name,
-            'bed_number': p.bed_number
-        } for p in patients]
-    })
+    try:
+        patients = Admission.query.options(joinedload(Admission.bed)).filter_by(
+            hospital_id=current_user.hospital_id,
+            discharged=False
+        ).all()
+
+        return jsonify({
+            'patients': [{
+                'id': p.id,
+                'name': p.patient_name,
+                'bed_number': p.bed.bed_number if p.bed else "N/A"
+            } for p in patients]
+        })
+    except Exception as e:
+        print("ERROR in current_patients:", e)
+        return jsonify({'error': 'Something went wrong fetching patients'}), 500
+
 
 @discharge_bp.route('/api/discharge', methods=['POST'])
 @login_required

@@ -1,71 +1,195 @@
 {% extends "users/base.html" %} {% block content %}
-<div class="container-fluid">
-	<!-- Header Section -->
-	<div class="d-flex justify-content-between align-items-center mb-4">
-		<h2>Patient Discharges</h2>
-		<button class="btn btn-primary" id="newDischargeBtn">
-			<i class="fas fa-sign-out-alt me-2"></i>New Discharge
-		</button>
-	</div>
-
-	<!-- Summary Cards -->
-	<div class="row mb-4">
+<div class="container py-4 discharges">
+	<div class="row g-4">
+		<!-- Left Panel: Patient List -->
 		<div class="col-md-4">
-			<div class="card stat-card">
-				<div class="card-body">
-					<h5 class="card-title">Today's Discharges</h5>
-					<h2 class="mb-0">{{ today_discharges_count }}</h2>
+			<div class="card p-3 h-90">
+				<!-- Heading with icon -->
+				<div
+					class="card-header bg-transparent border-0 mb-3 d-flex align-items-center">
+					<i class="fas fa-user me-2 text-primary"></i>
+					<h5 class="mb-0">Currently Admitted Patients</h5>
+				</div>
+
+				<!-- Search input -->
+				<div class="mb-3">
+					<input
+						type="text"
+						class="form-control"
+						id="patientSearch"
+						placeholder="Search by bed or ID..." />
+				</div>
+
+				<!-- Column headers -->
+				<div class="d-flex fw-bold px-2 text-muted small mb-1">
+					<div class="flex-fill">Bed #</div>
+					<div class="flex-fill">Patient ID</div>
+					<div style="width: 80px">Action</div>
+				</div>
+
+				<!-- Patient list (filled dynamically by JS) -->
+				<div
+					class="list-group overflow-auto"
+					style="max-height: 500px"
+					id="patientList">
+					<!-- Patient rows will be inserted here by JS -->
 				</div>
 			</div>
-		</div>
-		<div class="col-md-4">
-			<div class="card stat-card">
-				<div class="card-body">
-					<h5 class="card-title">Avg. Stay Duration</h5>
-					<h2 class="mb-0">3.2 days</h2>
-				</div>
+			<!-- Help card -->
+			<div class="card p-3 mt-4">
+				<h6><i class="fas fa-info-circle me-2"></i>Quick Help</h6>
+				<ul class="small mb-2">
+					<li>Select a patient from the list</li>
+					<li>Verify identity & fill discharge form</li>
+					<li>Submit to complete process</li>
+				</ul>
+				<button class="btn btn-outline-secondary btn-sm w-100">
+					Contact Support
+				</button>
 			</div>
 		</div>
-	</div>
 
-	<!-- Discharges List -->
-	<div class="card">
-		<div class="card-body">
-			{% for date, discharges in discharges_by_date.items() %}
-			<div class="date-group mb-4">
-				<h5 class="date-header">
-					{% if date == today %}Today {% elif date == yesterday %}Yesterday {%
-					else %}{{ date.strftime('%B %d') }} {% endif %}
-				</h5>
-
-				{% for discharge in discharges %}
-				<div class="discharge-card">
-					<div class="discharge-avatar bg-success">
-						{{ discharge.patient_initials }}
-					</div>
-					<div class="discharge-details">
-						<div class="d-flex justify-content-between">
-							<h6>{{ discharge.patient_name }}</h6>
-							<span class="badge bg-info">{{ discharge.discharge_type }}</span>
-						</div>
-						<div class="text-muted small">
-							<span>Bed {{ discharge.bed_number }}</span> •
-							<span>{{ discharge.discharge_time.strftime('%I:%M %p') }}</span> •
-							<span>{{ discharge.length_of_stay }} days</span>
-						</div>
-						<p class="mb-0">
-							Discharged by Dr. {{ discharge.discharging_doctor }}
+		<!-- Right Panel: Discharge Form -->
+		<div class="col-md-8">
+			<div class="card p-4">
+				<div
+					class="card-header bg-transparent border-0 p-0 mb-3 d-flex align-items-center">
+					<i
+						class="fa-regular fa-clipboard me-2 text-primary"
+						style="font-size: 1.5rem"></i>
+					<h5 class="mb-0">Process Discharge</h5>
+				</div>
+				<form
+					action="{{ url_for('discharge.discharge_patient') }}"
+					method="POST">
+					<!-- Patient Info -->
+					<div
+						class="bg-light-blue p-3 rounded mb-4 border border-primary-subtle">
+						<label class="form-label fw-bold text-primary"
+							>Patient Verification</label
+						>
+						<p class="small text-primary mb-3">
+							Please select a patient from the admitted list or enter patient
+							details below
 						</p>
+						<div class="row g-2 align-items-end">
+							<div class="col-md-6">
+								<label class="form-label">Bed Number</label>
+								<input
+									type="text"
+									class="form-control"
+									id="bedNumber"
+									name="bed_number"
+									readonly />
+							</div>
+							<div class="col-md-6">
+								<label class="form-label">Patient ID</label>
+								<input
+									type="text"
+									class="form-control"
+									id="patientID"
+									name="patient_id_display"
+									readonly />
+							</div>
+						</div>
+						<button
+							type="button"
+							class="btn btn-primary mt-3 position-relative fw-bold"
+							style="color: white">
+							<span class="fa-stack me-1" style="font-size: 0.75em">
+								<i class="fa-regular fa-circle fa-stack-2x"></i>
+								<i class="fa-solid fa-check fa-stack-1x"></i>
+							</span>
+
+							Verify Patient
+						</button>
+					</div>
+
+					<!-- Admission & Discharge Dates -->
+					<div class="row g-3 mb-3">
+						<div class="col-md-6">
+							<label class="form-label">Admission Date</label>
+							<input
+								type="text"
+								class="form-control"
+								id="admissionDate"
+								name="admission_date"
+								readonly />
+						</div>
+						<div class="col-md-6">
+							<label class="form-label">Discharge Date</label>
+							<input
+								type="date"
+								class="form-control"
+								name="discharge_date"
+								required />
+						</div>
+					</div>
+
+					<!-- Discharge Notes -->
+					<div class="mb-3">
+						<label class="form-label">Discharge Notes</label>
+						<textarea
+							class="form-control"
+							name="discharge_notes"
+							rows="4"
+							placeholder="Include any key observations or follow-up details..."></textarea>
+					</div>
+
+					<!-- Hidden patient id to submit -->
+					<input type="hidden" id="patientId" name="patient_id" />
+
+					<!-- Submit -->
+					<div class="text-end">
+						<button type="submit" class="btn btn-success">
+							Submit Discharge
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<!-- Recent Discharges -->
+	<div class="row mt-4">
+		<div class="col-12">
+			<div class="card">
+				<div class="card-header">
+					<h5 class="mb-0">
+						<i class="fas fa-history me-2"></i>
+						Recently Discharged Patients
+					</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table">
+							<thead>
+								<tr>
+									<th>Patient</th>
+									<th>Bed</th>
+									<th>Admission Date</th>
+									<th>Discharge Date</th>
+									<th>Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for discharge in recent_discharges %}
+								<tr>
+									<td>{{ discharge.patient_name }}</td>
+									<td>{{ discharge.bed_number }}</td>
+									<td>{{ discharge.admission_time.strftime('%m/%d/%Y') }}</td>
+									<td>{{ discharge.discharge_time.strftime('%m/%d/%Y') }}</td>
+									<td>{{ discharge.discharge_type }}</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
 					</div>
 				</div>
-				{% endfor %}
 			</div>
-			{% endfor %}
 		</div>
 	</div>
 </div>
-
-{% include 'users/partials/discharge_form.html' %} {% endblock %} {% block
-scripts %}
+{% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='js/discharges.js') }}"></script>
 {% endblock %}
