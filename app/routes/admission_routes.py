@@ -18,21 +18,30 @@ def admissions():
     yesterday = today - timedelta(days=1)
     last_week = today - timedelta(days=7)
 
-    # Get current page from query parameter, default to 1
+    # Get current page and status filter from query parameters
     page = request.args.get('page', 1, type=int)
-    per_page = 5
+    status_filter = request.args.get('status', 'all')  # 'all', 'active', 'discharged'
+    per_page = 10  # Increased from 5 to show more patients per page
 
-    # Query for all recent admissions (last 7 days)
+    # Query for ALL admissions (not just recent ones)
     base_query = Admission.query.filter(
-        Admission.hospital_id == hospital.id,
-        Admission.admission_time >= local_date_to_utc(last_week, hospital)
-    ).order_by(Admission.admission_time.desc())
+        Admission.hospital_id == hospital.id
+    )
+    
+    # Apply status filter
+    if status_filter == 'active':
+        base_query = base_query.filter(Admission.status == 'Active')
+    elif status_filter == 'discharged':
+        base_query = base_query.filter(Admission.status == 'Discharged')
+    # 'all' shows everything, so no additional filter needed
+    
+    base_query = base_query.order_by(Admission.admission_time.desc())
 
     total_admissions = base_query.count()
     total_pages = (total_admissions + per_page - 1) // per_page
 
     # Fetch admissions for current page using offset and limit
-    recent_admissions = base_query.offset((page - 1) * per_page).limit(per_page).all()
+    all_admissions = base_query.offset((page - 1) * per_page).limit(per_page).all()
 
     # Today's admissions
     today_count = Admission.query.filter(
@@ -49,7 +58,7 @@ def admissions():
     # Percentage change for admissions
     admissions_change = calculate_percentage_change(today_count, yesterday_admissions)
 
-    # Current patients count
+    # Current patients count (active only)
     current_patients_count = Admission.query.filter(
         Admission.hospital_id == hospital.id,
         Admission.status == 'Active'
@@ -92,7 +101,7 @@ def admissions():
 
     return render_template('users/admissions.html',
                          hospital=hospital,
-                         recent_admissions=recent_admissions,
+                         recent_admissions=all_admissions,  # Changed variable name but keeping template compatibility
                          today_admissions_count=today_count,
                          admissions_change=admissions_change,
                          current_patients_count=current_patients_count,
@@ -103,7 +112,8 @@ def admissions():
                          avg_length_of_stay=round(current_avg_stay, 1),
                          page=page,
                          total_pages=total_pages,
-                         total_admissions=total_admissions)
+                         total_admissions=total_admissions,
+                         status_filter=status_filter)
 
 def calculate_percentage_change(current_value, previous_value):
     if previous_value > 0:

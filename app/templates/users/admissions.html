@@ -72,7 +72,17 @@
 	<!-- Recent Admissions Table -->
 	<div class="card mt-5">
 		<div class="card-body">
-			<h5 class="card-title mb-4">Recent Admissions</h5>
+			<div class="d-flex justify-content-between align-items-center mb-4">
+				<h5 class="card-title mb-0">All Patient Admissions</h5>
+				<div class="d-flex gap-2">
+					<!-- Status Filter -->
+					<select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
+						<option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Patients</option>
+						<option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+						<option value="discharged" {% if status_filter == 'discharged' %}selected{% endif %}>Discharged Only</option>
+					</select>
+				</div>
+			</div>
 			<div class="table-responsive">
 				<table class="table table-hover admissions-table">
 					<thead>
@@ -118,7 +128,7 @@
 					<li class="page-item {% if page <= 1 %}disabled{% endif %}">
 						<a
 							class="page-link"
-							href="{{ url_for('admission.admissions', page=page-1) }}"
+							href="{{ url_for('admission.admissions', page=page-1, status=status_filter) }}"
 							tabindex="-1"
 							>Previous</a
 						>
@@ -131,7 +141,7 @@
 					<li class="page-item {% if page >= total_pages %}disabled{% endif %}">
 						<a
 							class="page-link"
-							href="{{ url_for('admission.admissions', page=page+1) }}"
+							href="{{ url_for('admission.admissions', page=page+1, status=status_filter) }}"
 							>Next</a
 						>
 					</li>

@@ -4,6 +4,18 @@ document.addEventListener('DOMContentLoaded', function () {
 	const admissionForm = document.getElementById('admissionForm');
 	const formOverlay = document.getElementById('formOverlay');
 	const admissionFormData = document.getElementById('admissionFormData');
+	const statusFilter = document.getElementById('statusFilter');
+
+	// Status filter functionality
+	if (statusFilter) {
+		statusFilter.addEventListener('change', function () {
+			const selectedStatus = this.value;
+			const currentUrl = new URL(window.location);
+			currentUrl.searchParams.set('status', selectedStatus);
+			currentUrl.searchParams.set('page', '1'); // Reset to first page when filtering
+			window.location.href = currentUrl.toString();
+		});
+	}
 
 	// Open form
 	if (newAdmissionBtn && admissionForm && formOverlay) {

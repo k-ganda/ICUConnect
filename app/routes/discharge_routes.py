@@ -62,6 +62,96 @@ def current_patients():
         print("ERROR in current_patients:", e)
         return jsonify({'error': 'Something went wrong fetching patients'}), 500
 
+@discharge_bp.route('/api/discharge', methods=['POST'])
+@login_required
+def api_discharge():
+    """API endpoint for discharging patients"""
+    try:
+        data = request.get_json()
+        patient_id = data.get('patient_id')
+        discharge_date = data.get('discharge_date')
+        discharge_type = data.get('discharge_type')
+        discharge_notes = data.get('discharge_notes', '')
+        
+        if not patient_id:
+            return jsonify({
+                'success': False,
+                'message': 'Patient ID is required'
+            }), 400
+        
+        # Get the admission record
+        admission = Admission.query.filter_by(
+            id=patient_id,
+            hospital_id=current_user.hospital_id,
+            status='Active'
+        ).first()
+        
+        if not admission:
+            return jsonify({
+                'success': False,
+                'message': 'Patient not found or not currently admitted'
+            }), 404
+        
+        # Check if patient is already discharged
+        if admission.status == 'Discharged':
+            return jsonify({
+                'success': False,
+                'message': 'Patient is already discharged'
+            }), 400
+        
+        # Check if there's already a discharge record for this admission
+        existing_discharge = Discharge.query.filter_by(
+            hospital_id=current_user.hospital_id,
+            patient_name=admission.patient_name,
+            admission_time=admission.admission_time
+        ).first()
+        
+        if existing_discharge:
+            return jsonify({
+                'success': False,
+                'message': 'Discharge record already exists for this patient'
+            }), 400
+        
+        # Get the hospital for timezone conversion
+        hospital = Hospital.query.get(current_user.hospital_id)
+        
+        # Update admission record
+        admission.status = 'Discharged'
+        admission.discharge_time = to_utc_time(get_current_local_time(hospital), hospital)
+        admission.discharge_notes = discharge_notes
+        
+        # Update bed status
+        if admission.bed:
+            admission.bed.is_occupied = False
+        
+        # Create discharge record
+        discharge = Discharge(
+            hospital_id=current_user.hospital_id,
+            patient_name=admission.patient_name,
+            admission_time=admission.admission_time,
+            discharge_time=admission.discharge_time,
+            discharging_doctor=admission.doctor,  # Use the admitting doctor as discharging doctor
+            discharge_type=discharge_type,
+            notes=discharge_notes,  # Use 'notes' instead of 'discharge_notes'
+            bed_number=admission.bed.bed_number if admission.bed else None
+        )
+        
+        db.session.add(discharge)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Patient discharged successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print("Error in api_discharge:", e)
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
 @discharge_bp.route('/discharge/<int:admission_id>', methods=['POST'])
 @login_required
 def discharge_patient(admission_id):
