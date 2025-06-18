@@ -12,18 +12,34 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__)
     
-    # Configure database URI to point explicitly to instance folder
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        SQLALCHEMY_DATABASE_URI='postgresql://flaskuser:icu123@localhost/icuconnectdb',
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 10,
-            'max_overflow': 20,
-            'pool_pre_ping': True,
-            'pool_recycle': 3600
-        }
-    )
+    # Configure database URI - use environment variable for production, local for development
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        # Render provides DATABASE_URL, use it directly
+        app.config.from_mapping(
+            SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
+            SQLALCHEMY_DATABASE_URI=database_url,
+            SQLALCHEMY_TRACK_MODIFICATIONS=False,
+            SQLALCHEMY_ENGINE_OPTIONS = {
+                'pool_size': 10,
+                'max_overflow': 20,
+                'pool_pre_ping': True,
+                'pool_recycle': 3600
+            }
+        )
+    else:
+        # Local development configuration
+        app.config.from_mapping(
+            SECRET_KEY='dev',
+            SQLALCHEMY_DATABASE_URI='postgresql://flaskuser:icu123@localhost/icuconnectdb',
+            SQLALCHEMY_TRACK_MODIFICATIONS=False,
+            SQLALCHEMY_ENGINE_OPTIONS = {
+                'pool_size': 10,
+                'max_overflow': 20,
+                'pool_pre_ping': True,
+                'pool_recycle': 3600
+            }
+        )
     
     # Initialize extensions
     db.init_app(app)
@@ -54,6 +70,7 @@ def create_app():
         from app.routes.user_routes import user_bp
         from app.routes.admission_routes import admission_bp
         from app.routes.discharge_routes import discharge_bp
+        from app.routes.prediction_routes import prediction_bp
         
         app.register_blueprint(main_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -61,7 +78,7 @@ def create_app():
         app.register_blueprint(user_bp, url_prefix='/user')
         app.register_blueprint(admission_bp, url_prefix='/admissions')
         app.register_blueprint(discharge_bp, url_prefix='/discharges')
-        
+        app.register_blueprint(prediction_bp, url_prefix='/api')
         
         # Global context processor for all templates
         @app.context_processor

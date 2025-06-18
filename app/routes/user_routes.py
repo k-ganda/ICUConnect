@@ -36,3 +36,11 @@ def dashboard():
 @user_bp.route('/kisumu-geojson')
 def kisumu_geojson():
     return send_from_directory('static/data', 'kisumu.geojson')
+
+@user_bp.route('/guide')
+@login_required
+def guide():
+    # Prevent admin from accessing user guide
+    if isinstance(current_user, Admin):
+        abort(403)
+    return render_template('users/guide.html')

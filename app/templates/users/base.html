@@ -52,6 +52,12 @@
 							<i class="fas fa-hospital-user"></i> Discharges
 						</a>
 					</li>
+					<li
+						class="{% if request.endpoint == 'user.guide' %}active{% endif %}">
+						<a href="{{ url_for('user.guide') }}">
+							<i class="fas fa-book"></i> User Guide
+						</a>
+					</li>
 					<li>
 						<a href="#"> <i class="fas fa-exchange-alt"></i> Referrals </a>
 					</li>

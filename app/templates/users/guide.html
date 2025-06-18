@@ -1,0 +1,184 @@
+{% extends "users/base.html" %} {% block title %}User Guide & Ethical
+Considerations{% endblock %} {% block content %}
+<div class="container py-4">
+	<div class="row">
+		<div class="col-12">
+			<div class="card mb-4">
+				<div class="card-header bg-light">
+					<h5 class="mb-0 d-flex align-items-center">
+						<i
+							class="fas fa-book me-3"
+							style="font-size: 1.2rem; opacity: 0.8"></i>
+						<span class="fw-semibold">User Guide & Ethical Considerations</span>
+					</h5>
+				</div>
+				<div class="card-body">
+					<!-- Data Sources Section -->
+					<div class="mb-5">
+						<h4 class="border-bottom pb-2 mb-3">Data Sources & Accuracy</h4>
+						<div class="alert alert-info">
+							<h5 class="alert-heading">
+								<i class="fas fa-database me-2"></i>Facility Information
+							</h5>
+							<p class="mb-0">
+								All hospital facility locations and basic information are
+								sourced from the Kenya Master Health Facility Registry (KMHFR),
+								which is the official registry of health facilities in Kenya.
+							</p>
+						</div>
+						<div class="alert alert-warning">
+							<h5 class="alert-heading">
+								<i class="fas fa-exclamation-triangle me-2"></i>ICU Bed
+								Capacities
+							</h5>
+							<p class="mb-0">
+								The ICU bed capacities shown in this system are simulated for
+								research purposes and do not reflect actual bed availability in
+								the facilities. These numbers are used solely for demonstrating
+								the system's functionality and should not be used for real-world
+								decision making.
+							</p>
+						</div>
+					</div>
+
+					<!-- Ethical Considerations Section -->
+					<div class="mb-5">
+						<h4 class="border-bottom pb-2 mb-3">Ethical Considerations</h4>
+						<div class="card mb-3">
+							<div class="card-body">
+								<h5>
+									<i class="fas fa-shield-alt me-2 text-primary"></i>Patient
+									Privacy
+								</h5>
+								<p>
+									This system is designed with patient privacy as a top
+									priority:
+								</p>
+								<ul>
+									<li>
+										Patient names are never displayed in full - only initials
+										are shown
+									</li>
+									<li>All patient data is stored securely and encrypted</li>
+									<li>
+										Access to patient information is strictly controlled and
+										logged
+									</li>
+									<li>No patient identifiers are shared between facilities</li>
+								</ul>
+							</div>
+						</div>
+						<div class="card mb-3">
+							<div class="card-body">
+								<h5>
+									<i class="fas fa-balance-scale me-2 text-primary"></i>Data
+									Usage
+								</h5>
+								<p>Our commitment to ethical data handling:</p>
+								<ul>
+									<li>
+										Data is collected and used only for the purpose of managing
+										ICU admissions and discharges
+									</li>
+									<li>
+										Aggregate statistics may be used for research with proper
+										anonymization
+									</li>
+									<li>
+										No patient data is shared with third parties without
+										explicit consent
+									</li>
+									<li>All data access is logged and audited regularly</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+
+					<!-- System Usage Guide -->
+					<div class="mb-5">
+						<h4 class="border-bottom pb-2 mb-3">System Usage Guide</h4>
+						<div class="row g-4">
+							<div class="col-md-6">
+								<div class="card h-100">
+									<div class="card-body">
+										<h5>
+											<i class="fas fa-procedures me-2 text-primary"></i
+											>Admissions
+										</h5>
+										<ul class="mb-0">
+											<li>Use the "New Admission" button to admit patients</li>
+											<li>Verify bed availability before admission</li>
+											<li>Enter all required patient information</li>
+											<li>Set appropriate priority level</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="card h-100">
+									<div class="card-body">
+										<h5>
+											<i class="fas fa-hospital-user me-2 text-primary"></i
+											>Discharges
+										</h5>
+										<ul class="mb-0">
+											<li>Select patient from the current admissions list</li>
+											<li>Verify patient identity before discharge</li>
+											<li>Complete all discharge documentation</li>
+											<li>Update bed status automatically</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="card h-100">
+									<div class="card-body">
+										<h5>
+											<i class="fas fa-exchange-alt me-2 text-primary"></i
+											>Referrals
+										</h5>
+										<ul class="mb-0">
+											<li>Use the map interface to find available beds</li>
+											<li>Contact receiving facilities directly</li>
+											<li>Document all referral communications</li>
+											<li>Update patient status after transfer</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="card h-100">
+									<div class="card-body">
+										<h5>
+											<i class="fas fa-chart-line me-2 text-primary"></i
+											>Dashboard
+										</h5>
+										<ul class="mb-0">
+											<li>Monitor bed availability in real-time</li>
+											<li>View admission/discharge statistics</li>
+											<li>Track facility capacity</li>
+											<li>Access historical data</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Support Section -->
+					<div class="alert alert-secondary">
+						<h5 class="alert-heading">
+							<i class="fas fa-question-circle me-2"></i>Need Help?
+						</h5>
+						<p class="mb-0">
+							If you need assistance or have questions about using the system,
+							please contact your system administrator or use the "Contact
+							Support" button available throughout the application.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
