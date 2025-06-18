@@ -103,44 +103,94 @@ def create_app():
 
 def _initialize_database(app, reset=False):
     """Initialize or update the PostgreSQL database."""
-    from flask_migrate import init, migrate, upgrade
-    from app.models import Hospital, Admin
-    import shutil
+    from app.models import Hospital, Admin, Bed
     import os
 
     try:
-        # Migration setup (same as before)
-        migrations_path = os.path.join(os.getcwd(), 'migrations')
-        if reset and os.path.exists(migrations_path):
-            shutil.rmtree(migrations_path)
-
-        if not os.path.exists(migrations_path):
-            init(directory=migrations_path)
-
-        migrate(message='Initial migration', directory=migrations_path)
-        upgrade(directory=migrations_path)
-
-        # Create tables
-        db.create_all()
-
-        # Check if system hospital exists before creating
-        if not Hospital.query.filter_by(name="System Hospital").first():
-            hospital = Hospital(name="System Hospital", verification_code="SYSADMIN")
-            db.session.add(hospital)
-            db.session.commit()
-
-            # Only create admin if it doesn't exist
-            if not Admin.query.first():
-                admin = Admin(
-                    hospital_id=hospital.id,
-                    email="admin@icuconnect.com",
-                    privilege_level="super"
+        # Check if we're in production (Render) by checking for DATABASE_URL
+        is_production = bool(os.environ.get('DATABASE_URL'))
+        
+        if is_production:
+            # For production (Render), skip migrations and create tables directly
+            print("Production environment detected. Creating tables directly...")
+            
+            # Create tables directly without migrations
+            db.create_all()
+            
+            # Check if system hospital exists before creating
+            if not Hospital.query.filter_by(name="System Hospital").first():
+                hospital = Hospital(
+                    name="System Hospital", 
+                    verification_code="SYSADMIN",
+                    timezone="Africa/Kigali"
                 )
-                admin.set_password("temp1234")
-                db.session.add(admin)
+                db.session.add(hospital)
                 db.session.commit()
+
+                # Only create admin if it doesn't exist
+                if not Admin.query.first():
+                    admin = Admin(
+                        hospital_id=hospital.id,
+                        email="admin@icuconnect.com",
+                        privilege_level="super"
+                    )
+                    admin.set_password("temp1234")
+                    db.session.add(admin)
+                    db.session.commit()
+                
+                # Create beds if they don't exist
+                if not Bed.query.first():
+                    for i in range(1, 16):  # 15 beds
+                        bed = Bed(
+                            hospital_id=hospital.id,
+                            bed_number=i,
+                            is_occupied=False,
+                            bed_type="ICU"
+                        )
+                        db.session.add(bed)
+                    db.session.commit()
+            
+            print("Database initialization completed successfully!")
+            
+        else:
+            # For local development, use migrations
+            from flask_migrate import init, migrate, upgrade
+            import shutil
+            
+            # Migration setup
+            migrations_path = os.path.join(os.getcwd(), 'migrations')
+            if reset and os.path.exists(migrations_path):
+                shutil.rmtree(migrations_path)
+
+            if not os.path.exists(migrations_path):
+                init(directory=migrations_path)
+
+            migrate(message='Initial migration', directory=migrations_path)
+            upgrade(directory=migrations_path)
+
+            # Create tables
+            db.create_all()
+
+            # Check if system hospital exists before creating
+            if not Hospital.query.filter_by(name="System Hospital").first():
+                hospital = Hospital(name="System Hospital", verification_code="SYSADMIN")
+                db.session.add(hospital)
+                db.session.commit()
+
+                # Only create admin if it doesn't exist
+                if not Admin.query.first():
+                    admin = Admin(
+                        hospital_id=hospital.id,
+                        email="admin@icuconnect.com",
+                        privilege_level="super"
+                    )
+                    admin.set_password("temp1234")
+                    db.session.add(admin)
+                    db.session.commit()
 
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Database initialization error: {str(e)}")
-        raise
+        # Don't raise the error in production, just log it
+        if not os.environ.get('DATABASE_URL'):
+            raise
