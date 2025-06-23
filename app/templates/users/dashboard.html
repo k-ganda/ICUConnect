@@ -50,9 +50,10 @@
 		</div>
 	</div>
 
-	<!-- Map Section -->
+	<!-- Map and Referral Section -->
 	<div class="row">
-		<div class="col-12">
+		<!-- Map Section -->
+		<div class="col-md-8">
 			<div class="card">
 				<div class="card-header">
 					<h5 class="card-title mb-0">Kisumu County ICU Bed Availability</h5>
@@ -62,117 +63,870 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Referral Form Section -->
+		<div class="col-md-4">
+			<div class="card" id="referralFormCard" style="display: none">
+				<div class="card-header">
+					<h5 class="card-title mb-0">ICU Referral Request</h5>
+					<small class="text-muted">For new patients who need transfer</small>
+					<button
+						type="button"
+						class="btn-close float-end"
+						onclick="closeReferralForm()"></button>
+				</div>
+				<div class="card-body">
+					<form id="referralForm">
+						<!-- Patient Information -->
+						<div class="row mb-3">
+							<div class="col">
+								<label class="form-label">Age</label>
+								<input
+									type="number"
+									class="form-control"
+									id="patientAge"
+									placeholder="Age"
+									min="0"
+									max="150"
+									required />
+							</div>
+							<div class="col">
+								<label class="form-label">Gender</label>
+								<select class="form-select" id="patientGender" required>
+									<option value="">Select...</option>
+									<option value="Male">Male</option>
+									<option value="Female">Female</option>
+									<option value="Other">Other</option>
+								</select>
+							</div>
+						</div>
+
+						<!-- Target Hospital (hidden field) -->
+						<input type="hidden" id="targetHospitalId" />
+
+						<!-- Selected Hospital Display -->
+
+						<div
+							class="mb-3"
+							id="selectedHospitalDisplay"
+							style="display: none">
+							<label class="form-label">Selected Hospital</label>
+							<div class="alert alert-info">
+								<strong id="selectedHospitalName"></strong>
+							</div>
+						</div>
+
+						<div class="mb-3">
+							<label class="form-label">Primary Diagnosis</label>
+							<input
+								type="text"
+								class="form-control"
+								id="primaryDiagnosis"
+								placeholder="e.g., Severe Pneumonia" />
+						</div>
+
+						<!-- Reason for Referral -->
+						<div class="mb-3">
+							<label class="form-label">Patient's Condition</label>
+							<textarea
+								class="form-control"
+								id="reasonForReferral"
+								rows="3"
+								placeholder="Current status of the patient"
+								required></textarea>
+						</div>
+
+						<div class="mb-3">
+							<label class="form-label">Current Treatment</label>
+							<textarea
+								class="form-control"
+								id="currentTreatment"
+								rows="2"
+								placeholder="Medications, interventions, etc."></textarea>
+						</div>
+
+						<!-- Special Requirements -->
+						<div class="mb-3">
+							<label class="form-label">Special Requirements</label>
+							<textarea
+								class="form-control"
+								id="specialRequirements"
+								rows="2"
+								placeholder="Equipment, specialists, or other needs..."></textarea>
+						</div>
+
+						<!-- Submit Button -->
+						<button
+							type="submit"
+							class="btn btn-primary w-100"
+							id="submitReferralBtn">
+							<i class="fas fa-paper-plane"></i> Send Referral Request
+						</button>
+					</form>
+				</div>
+			</div>
+
+			<!-- Active Referrals -->
+			<div class="card mt-3">
+				<div class="card-header">
+					<h6 class="card-title mb-0">Active Referrals</h6>
+				</div>
+				<div class="card-body p-0">
+					<div id="activeReferralsList" class="list-group list-group-flush">
+						<div class="p-3 text-muted">No active referrals</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
+
+<!-- Referral Response Modal -->
+<div class="modal fade" id="referralResponseModal" tabindex="-1">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">ICU Referral Request</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div id="referralDetails"></div>
+				<div class="alert alert-warning mt-3">
+					<i class="fas fa-clock"></i>
+					<strong>Time Remaining:</strong> <span id="timeRemaining">2:00</span>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-success" id="acceptReferralBtn">
+					<i class="fas fa-check"></i> Accept Referral
+				</button>
+				<button type="button" class="btn btn-danger" id="rejectReferralBtn">
+					<i class="fas fa-times"></i> Reject Referral
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Rejection Reason Modal -->
+<div class="modal fade" id="rejectionReasonModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Rejection Reason</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<label class="form-label"
+						>Please provide a reason for rejection:</label
+					>
+					<textarea
+						class="form-control"
+						id="rejectionReason"
+						rows="3"
+						placeholder="Explain why this referral cannot be accepted..."></textarea>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+					Cancel
+				</button>
+				<button type="button" class="btn btn-danger" id="confirmRejectBtn">
+					<i class="fas fa-times"></i> Confirm Rejection
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Notification Sound -->
+<audio id="notificationSound" preload="auto">
+	<source
+		src="{{ url_for('static', filename='sounds/notificationsound.mp3') }}"
+		type="audio/mpeg" />
+</audio>
+
 {% endblock %} {% block scripts %}
 <script>
-	document.addEventListener('DOMContentLoaded', function () {
-	    // Initialize map with fallback view
-	    const map = L.map('map').setView([-0.1022, 34.7617], 10);
+	// Global variables
+	let activeReferrals = [];
+	let currentReferralId = null;
+	let notificationInterval;
+	let countdownInterval;
+	let soundInterval;
+	let isSoundPlaying = false;
+	let currentNotification = null;
+	let audioEnabled = false; // Track if user has enabled audio
 
-	    // Add base tiles
+	document.addEventListener('DOMContentLoaded', function() {
+	    // Initialize map
+	    initMap();
+
+	    // Initialize referral system
+	    initReferralSystem();
+
+	    // Start checking for notifications
+	    startNotificationCheck();
+
+	    // Setup event listeners
+	    setupEventListeners();
+
+	    // Enable audio on first user interaction
+	    document.addEventListener('click', function enableAudio() {
+	        if (!audioEnabled) {
+	            const audio = document.getElementById('notificationSound');
+	            if (audio) {
+	                audio.play().then(() => {
+	                    audio.pause();
+	                    audio.currentTime = 0;
+	                    audioEnabled = true;
+	                    console.log('Audio enabled on user interaction');
+	                }).catch(e => {
+	                    console.log('Audio still not enabled:', e);
+	                });
+	            }
+	        }
+	        // Remove the event listener after first interaction
+	        document.removeEventListener('click', enableAudio);
+	    }, { once: true });
+	});
+
+	function initMap() {
+	    const map = L.map('map').setView([-0.1022, 34.7617], 10);
 	    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	        attribution: '© OpenStreetMap',
+	        attribution: '© OpenStreetMap'
 	    }).addTo(map);
 
-	    // Load Kisumu boundary
-	    fetch("{{ url_for('user.kisumu_geojson') }}")
-	        .then((response) => response.json())
-	        .then((data) => {
-	            console.log('GeoJSON loaded:', data);
+	    // Load hospitals data
+	    const hospitals = {{ hospitals_data|tojson|safe }};
 
-	            // Handle GeometryCollection format
-	            if (data.type === 'GeometryCollection') {
-	                const multiPolygon = data.geometries.find(
-	                    (g) => g.type === 'MultiPolygon'
+	    hospitals.forEach(hospital => {
+	        if (!hospital.lat || !hospital.lng) return;
+
+	        const color = getAvailabilityColor(hospital.available, hospital.beds);
+	        const icon = createHospitalIcon(color, hospital.available);
+
+	        const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
+	            .bindPopup(`
+	                <div class="hospital-popup">
+	                    <h6><strong>${hospital.name}</strong></h6>
+	                    ${hospital.level ? `<p>Level: <strong>${hospital.level}</strong></p>` : ''}
+	                    <p>Total Beds: <strong>${hospital.beds}</strong></p>
+	                    <p>Available: <strong>${hospital.available}</strong></p>
+	                    <button class="btn btn-sm btn-primary mt-2 w-100 select-hospital-btn"
+	                            data-hospital-id="${hospital.id}"
+	                            data-hospital-name="${hospital.name}">
+	                        Select for Referral
+	                    </button>
+	                </div>
+	            `);
+
+	        marker.on('popupopen', function() {
+	            document.querySelector('.select-hospital-btn').addEventListener('click', function() {
+	                const hospitalId = this.dataset.hospitalId;
+	                const hospitalName = this.dataset.hospitalName;
+
+	                document.getElementById('targetHospitalId').value = hospitalId;
+	                document.getElementById('selectedHospitalName').textContent = hospitalName;
+	                document.getElementById('selectedHospitalDisplay').style.display = 'block';
+	                document.getElementById('referralFormCard').style.display = 'block';
+
+	                // Scroll to form
+	                document.getElementById('referralFormCard').scrollIntoView({
+	                    behavior: 'smooth',
+	                    block: 'start'
+	                });
+	            });
+	        });
+	    });
+	}
+
+	function getAvailabilityColor(available, total) {
+	    if (total <= 0) return 'gray';
+	    const percentage = (available / total) * 100;
+	    if (percentage >= 30) return 'green';
+	    if (percentage >= 10) return 'orange';
+	    return 'red';
+	}
+
+	function createHospitalIcon(color, available) {
+	    return L.divIcon({
+	        className: 'custom-marker',
+	        html: `
+	            <div class="marker-pin" style="background-color:${color}">
+	                <span>${available}</span>
+	            </div>
+	        `,
+	        iconSize: [30, 42],
+	        iconAnchor: [15, 42]
+	    });
+	}
+
+	function initReferralSystem() {
+	    // Load any existing active referrals
+	    loadActiveReferrals();
+	}
+
+	function loadActiveReferrals() {
+	    fetch('/referrals/api/pending-referrals')
+	        .then(response => {
+	            if (!response.ok) {
+	                throw new Error(`HTTP error! status: ${response.status}`);
+	            }
+	            const contentType = response.headers.get('content-type');
+	            if (!contentType || !contentType.includes('application/json')) {
+	                throw new Error(`Expected JSON but got ${contentType}`);
+	            }
+	            return response.json();
+	        })
+	        .then(data => {
+	            if (data.success) {
+	                // Filter for this hospital as target
+	                activeReferrals = data.referrals.filter(
+	                    ref => ref.target_hospital_id == {{ hospital.id }}
 	                );
+	                updateActiveReferralsList();
+	            }
+	        })
+	        .catch(error => {
+	            console.error('Error loading referrals:', error);
+	            console.error('This might indicate an authentication or server issue');
+	            // Don't show error to user for polling requests
+	        });
+	}
 
-	                if (multiPolygon) {
-	                    const feature = {
-	                        type: 'Feature',
-	                        properties: {},
-	                        geometry: multiPolygon,
-	                    };
+	function startNotificationCheck() {
+	    // Check every 5 seconds
+	    notificationInterval = setInterval(() => {
+	        fetch('/referrals/api/pending-referrals')
+	            .then(response => {
+	                if (!response.ok) {
+	                    throw new Error(`HTTP error! status: ${response.status}`);
+	                }
+	                return response.json();
+	            })
+	            .then(data => {
+	                if (data.success && data.referrals.length > 0) {
+	                    // Filter for this hospital as target
+	                    const targetReferrals = data.referrals.filter(
+	                        ref => ref.target_hospital_id == {{ hospital.id }}
+	                    );
 
-	                    const countyLayer = L.geoJSON(feature, {
-	                        style: {
-	                            color: '#3388ff',
-	                            weight: 3,
-	                            opacity: 1,
-	                            fillOpacity: 0.2,
-	                            fillColor: '#3388ff',
-	                        },
-	                    }).addTo(map);
+	                    const newReferrals = targetReferrals.filter(ref =>
+	                        !activeReferrals.find(ar => ar.id === ref.id)
+	                    );
 
-	                    map.fitBounds(countyLayer.getBounds());
-	                    map.setMaxBounds(countyLayer.getBounds().pad(0.5));
+	                    if (newReferrals.length > 0) {
+	                        showReferralModal(newReferrals[0]);
+	                        showVisualNotification();
+	                        playNotificationSound();
+	                    }
+
+	                    activeReferrals = targetReferrals;
+	                    updateActiveReferralsList();
+	                }
+	            })
+	            .catch(error => {
+	                console.error('Error checking referrals:', error);
+	                // Don't show error to user for polling requests
+	            });
+	    }, 5000);
+	}
+
+	function playNotificationSound() {
+	    const audio = document.getElementById('notificationSound');
+	    if (!audio) {
+	        console.error('Audio element not found');
+	        return;
+	    }
+
+	    if (isSoundPlaying) {
+	        console.log('Sound already playing');
+	        return;
+	    }
+
+	    // Check if audio is enabled (user has interacted with the page)
+	    if (!audioEnabled) {
+	        console.log('Audio not enabled - user needs to interact with page first');
+	        // Try to enable audio by attempting to play
+	        audio.play().then(() => {
+	            audio.pause();
+	            audio.currentTime = 0;
+	            audioEnabled = true;
+	            console.log('Audio enabled successfully');
+	            // Now try to play the notification sound
+	            playNotificationSound();
+	        }).catch(e => {
+	            console.log('Audio not enabled yet:', e);
+	            // Show a message to the user
+	            showAlert('Click anywhere on the page to enable notification sounds', 'info');
+	        });
+	        return;
+	    }
+
+	    isSoundPlaying = true;
+	    console.log('Starting notification sound');
+
+	    // Function to restart the sound when it ends
+	    const restartSound = () => {
+	        if (isSoundPlaying) {
+	            console.log('Restarting notification sound');
+	            audio.currentTime = 0;
+	            audio.play().catch(e => {
+	                console.log('Audio restart failed:', e);
+	                isSoundPlaying = false;
+	            });
+	        }
+	    };
+
+	    // Store the restart function reference for later removal
+	    audio.restartSound = restartSound;
+
+	    // Listen for when the sound ends to restart it
+	    audio.addEventListener('ended', restartSound);
+
+	    // Start playing
+	    audio.currentTime = 0;
+	    audio.play().catch(e => {
+	        console.log('Audio play failed:', e);
+	        isSoundPlaying = false;
+	        // If autoplay is blocked, try alternative method
+	        if (e.name === 'NotAllowedError') {
+	            console.log('Trying alternative sound method...');
+	            playSoundAlternative();
+	        }
+	    });
+	}
+
+	function playSoundAlternative() {
+	    // Alternative method: create a new audio element
+	    const audioUrl = "{{ url_for('static', filename='sounds/notificationsound.mp3') }}";
+	    const audio = new Audio(audioUrl);
+
+	    audio.play().then(() => {
+	        console.log('Alternative sound method worked!');
+	        isSoundPlaying = true;
+
+	        // Set up continuous playing
+	        audio.addEventListener('ended', () => {
+	            if (isSoundPlaying) {
+	                audio.currentTime = 0;
+	                audio.play().catch(e => {
+	                    console.log('Alternative restart failed:', e);
+	                    isSoundPlaying = false;
+	                });
+	            }
+	        });
+	    }).catch(e => {
+	        console.log('Alternative method also failed:', e);
+	        showAlert('Please enable sound in your browser settings', 'warning');
+	    });
+	}
+
+	function stopNotificationSound() {
+	    const audio = document.getElementById('notificationSound');
+	    if (audio) {
+	        isSoundPlaying = false;
+	        audio.pause();
+	        audio.currentTime = 0;
+
+	        // Remove the restart function if it exists
+	        if (audio.restartSound) {
+	            audio.removeEventListener('ended', audio.restartSound);
+	            audio.restartSound = null;
+	        }
+
+	        console.log('Notification sound stopped');
+	    }
+	}
+
+	function showVisualNotification() {
+	    // Remove any existing notification
+	    if (currentNotification) {
+	        currentNotification.remove();
+	    }
+
+	    const notification = document.createElement('div');
+	    notification.className = 'position-fixed notification-alert';
+	    notification.style.cssText = `
+	        top: 20px; right: 20px; z-index: 9999;
+	        background: #dc3545; color: white; padding: 15px 25px;
+	        border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+	        cursor: pointer; animation: fadeIn 0.3s;
+	    `;
+	    notification.innerHTML = `
+	        <div class="d-flex align-items-center">
+	            <i class="fas fa-bell me-2"></i>
+	            <div>
+	                <strong>NEW ICU REFERRAL REQUEST!</strong><br>
+	                <small>Click to view details</small>
+	            </div>
+	        </div>
+	    `;
+
+	    notification.addEventListener('click', () => {
+	        if (activeReferrals.length > 0) {
+	            showReferralModal(activeReferrals[0]);
+	        }
+	        notification.remove();
+	        currentNotification = null;
+	    });
+
+	    document.body.appendChild(notification);
+	    currentNotification = notification;
+	}
+
+	function showReferralModal(referral) {
+	    if (referral.target_hospital_id != {{ hospital.id }}) return;
+
+	    currentReferralId = referral.id;
+
+	    document.getElementById('referralDetails').innerHTML = `
+	        <div class="row">
+	            <div class="col-md-6">
+	                <h6>Patient Information</h6>
+	                <p><strong>Age:</strong> ${referral.patient_age}</p>
+	                <p><strong>Gender:</strong> ${referral.patient_gender}</p>
+	                ${referral.primary_diagnosis ? `<p><strong>Primary Diagnosis:</strong> ${referral.primary_diagnosis}</p>` : ''}
+	            </div>
+	            <div class="col-md-6">
+	                <h6>Referral Details</h6>
+	                <p><strong>From:</strong> ${referral.requesting_hospital}</p>
+	                <p><strong>Urgency:</strong> ${referral.urgency}</p>
+	                <p><strong>Reason:</strong> ${referral.reason}</p>
+	                ${referral.current_treatment ? `<p><strong>Current Treatment:</strong> ${referral.current_treatment}</p>` : ''}
+	            </div>
+	        </div>
+	        ${referral.special_requirements ?
+	            `<p><strong>Special Requirements:</strong> ${referral.special_requirements}</p>` : ''}
+	    `;
+
+	    startCountdown(referral.time_remaining);
+	    new bootstrap.Modal(document.getElementById('referralResponseModal')).show();
+	}
+
+	function startCountdown(seconds) {
+	    // Clear any existing countdown
+	    if (countdownInterval) clearInterval(countdownInterval);
+
+	    const timeElement = document.getElementById('timeRemaining');
+	    let remaining = seconds;
+
+	    countdownInterval = setInterval(() => {
+	        const mins = Math.floor(remaining / 60);
+	        const secs = remaining % 60;
+	        timeElement.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+	        if (remaining <= 0) {
+	            clearInterval(countdownInterval);
+	            // Stop the notification sound
+	            stopNotificationSound();
+	            // Remove the visual notification
+	            if (currentNotification) {
+	                currentNotification.remove();
+	                currentNotification = null;
+	            }
+	            // Close the modal
+	            closeReferralModal();
+	            // Remove expired referral from active list
+	            if (currentReferralId) {
+	                activeReferrals = activeReferrals.filter(ref => ref.id !== currentReferralId);
+	                updateActiveReferralsList();
+	                checkAndEscalateReferral(currentReferralId);
+	            }
+	        }
+	        remaining--;
+	    }, 1000);
+	}
+
+	function checkAndEscalateReferral(referralId) {
+	    fetch(`/referrals/api/check-referral-status/${referralId}`)
+	        .then(response => response.json())
+	        .then(data => {
+	            if (data.success && data.status === 'Pending') {
+	                if (data.requesting_hospital_id == {{ hospital.id }}) {
+	                    escalateReferral(referralId);
 	                }
 	            }
-
-	            // Use hospitals data from Flask backend
-	            const hospitals = {{ hospitals_data|tojson|safe }};
-
-	            // Color coding based on availability percentage
-	            function getMarkerColor(hospital) {
-	                if (hospital.beds <= 0) return 'gray';
-	                const percentage = (hospital.available / hospital.beds) * 100;
-	                if (percentage >= 30) return 'green';
-	                if (percentage >= 10) return 'orange';
-	                return 'red';
-	            }
-
-	            // Custom icon creation
-	            function createCustomIcon(color, available) {
-	                return L.divIcon({
-	                    className: 'custom-marker',
-	                    html: `
-	                        <div class="marker-pin" style="background-color:${color}">
-	                            <span>${available}</span>
-	                        </div>
-	                    `,
-	                    iconSize: [30, 42],
-	                    iconAnchor: [15, 42],
-	                });
-	            }
-
-	            // Add hospitals with enhanced markers
-	            hospitals.forEach((hospital) => {
-	                if (!hospital.lat || !hospital.lng) return; // Skip if no coordinates
-
-	                const color = getMarkerColor(hospital);
-	                const icon = createCustomIcon(color, hospital.available);
-
-	                const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
-	                    .bindPopup(`
-	                        <div class="hospital-popup">
-	                            <h6><strong>${hospital.name}</strong></h6>
-	                            ${hospital.level ? `<p>Level: <strong>${hospital.level}</strong></p>` : ''}
-	                            <p>Total Beds: <strong>${hospital.beds}</strong></p>
-	                            <p>Available: <strong>${hospital.available}</strong></p>
-	                            ${hospital.contact ? `<p>Contact: <strong>${hospital.contact}</strong></p>` : ''}
-	                            <button class="btn btn-sm btn-primary mt-2 w-100 referral-btn"
-	                                    data-hospital="${hospital.name}"
-	                                    ${hospital.contact ? `data-contact="${hospital.contact}"` : ''}>
-	                                Request Referral
-	                            </button>
-	                        </div>
-	                    `);
-	            });
-
-	            // Handle referral button clicks
-	            map.on('popupopen', function () {
-	                document.querySelectorAll('.referral-btn').forEach((btn) => {
-	                    btn.addEventListener('click', function () {
-	                        const hospitalName = this.dataset.hospital;
-	                        const contact = this.dataset.contact || 'Not available';
-	                        alert(`Initiating referral to ${hospitalName}\nContact: ${contact}`);
-	                    });
-	                });
-	            });
 	        })
-	        .catch((error) => {
+	        .catch(error => console.error('Error checking referral:', error));
+	}
+
+	function escalateReferral(referralId) {
+	    fetch(`/referrals/api/escalate-referral/${referralId}`, {
+	        method: 'POST'
+	    })
+	        .then(response => response.json())
+	        .then(data => {
+	            if (data.success) {
+	                showAlert(`Referral escalated to ${data.target_hospital}`, 'info');
+	                if (data.new_referral_id) {
+	                    startReferralTracking(data.new_referral_id, 120);
+	                }
+	                loadActiveReferrals();
+	            } else {
+	                showAlert(data.message, 'error');
+	            }
+	        })
+	        .catch(error => console.error('Error escalating referral:', error));
+	}
+
+	function setupEventListeners() {
+	    // Referral form submission
+	    document.getElementById('referralForm').addEventListener('submit', function(e) {
+	        e.preventDefault();
+	        submitReferral();
+	    });
+
+	    // Accept referral button
+	    document.getElementById('acceptReferralBtn').addEventListener('click', function() {
+	        acceptReferral();
+	    });
+
+	    // Reject referral button
+	    document.getElementById('rejectReferralBtn').addEventListener('click', function() {
+	        new bootstrap.Modal(document.getElementById('rejectionReasonModal')).show();
+	    });
+
+	    // Confirm rejection button
+	    document.getElementById('confirmRejectBtn').addEventListener('click', function() {
+	        const reason = document.getElementById('rejectionReason').value;
+	        if (reason.trim()) {
+	            rejectReferral(reason);
+	        } else {
+	            showAlert('Please provide a reason for rejection.', 'error');
+	        }
+	    });
+	}
+
+	function submitReferral() {
+	    const formData = {
+	        target_hospital_id: document.getElementById('targetHospitalId').value,
+	        patient_age: document.getElementById('patientAge').value,
+	        patient_gender: document.getElementById('patientGender').value,
+	        primary_diagnosis: document.getElementById('primaryDiagnosis').value,
+	        current_treatment: document.getElementById('currentTreatment').value,
+	        reason: document.getElementById('reasonForReferral').value,
+	        special_requirements: document.getElementById('specialRequirements').value
+	    };
+
+	    // Validate form
+	    if (!formData.target_hospital_id) {
+	        showAlert('Please select a target hospital', 'error');
+	        return;
+	    }
+
+	    const submitBtn = document.getElementById('submitReferralBtn');
+	    submitBtn.disabled = true;
+	    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+	    fetch('/referrals/api/initiate-referral', {
+	        method: 'POST',
+	        headers: {
+	            'Content-Type': 'application/json',
+	        },
+	        body: JSON.stringify(formData)
+	    })
+	        .then(response => response.json())
+	        .then(data => {
+	            if (data.success) {
+	                showAlert(data.message, 'success');
+	                closeReferralForm();
+	            } else {
+	                showAlert(data.message, 'error');
+	            }
+	        })
+	        .catch(error => {
 	            console.error('Error:', error);
+	            showAlert('An error occurred while sending the referral', 'error');
+	        })
+	        .finally(() => {
+	            submitBtn.disabled = false;
+	            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Referral Request';
 	        });
-	});
+	}
+
+	function acceptReferral() {
+	    if (!currentReferralId) return;
+
+	    fetch('/referrals/api/respond-to-referral', {
+	        method: 'POST',
+	        headers: {
+	            'Content-Type': 'application/json',
+	        },
+	        body: JSON.stringify({
+	            referral_id: currentReferralId,
+	            response_type: 'accept',
+	            response_message: 'Referral accepted'
+	        })
+	    })
+	        .then(response => response.json())
+	        .then(data => {
+	            if (data.success) {
+	                // Stop the notification sound
+	                stopNotificationSound();
+	                // Remove the visual notification
+	                if (currentNotification) {
+	                    currentNotification.remove();
+	                    currentNotification = null;
+	                }
+	                showAlert('Referral accepted successfully!', 'success');
+	                closeReferralModal();
+	                loadActiveReferrals();
+	            } else {
+	                showAlert(data.message, 'error');
+	            }
+	        })
+	        .catch(error => {
+	            console.error('Error:', error);
+	            showAlert('Error accepting referral', 'error');
+	        });
+	}
+
+	function rejectReferral(reason) {
+	    if (!currentReferralId) return;
+
+	    fetch('/referrals/api/respond-to-referral', {
+	        method: 'POST',
+	        headers: {
+	            'Content-Type': 'application/json',
+	        },
+	        body: JSON.stringify({
+	            referral_id: currentReferralId,
+	            response_type: 'reject',
+	            response_message: reason
+	        })
+	    })
+	        .then(response => response.json())
+	        .then(data => {
+	            if (data.success) {
+	                // Stop the notification sound
+	                stopNotificationSound();
+	                showAlert('Referral rejected', 'info');
+	                closeReferralModal();
+	                closeRejectionModal();
+	                loadActiveReferrals();
+	            } else {
+	                showAlert(data.message, 'error');
+	            }
+	        })
+	        .catch(error => {
+	            console.error('Error:', error);
+	            showAlert('Error rejecting referral', 'error');
+	        });
+	}
+
+	function closeReferralForm() {
+	    document.getElementById('referralForm').reset();
+	    document.getElementById('referralFormCard').style.display = 'none';
+	    document.getElementById('selectedHospitalDisplay').style.display = 'none';
+	}
+
+	function closeReferralModal() {
+	    const modal = bootstrap.Modal.getInstance(document.getElementById('referralResponseModal'));
+	    if (modal) modal.hide();
+	}
+
+	function closeRejectionModal() {
+	    document.getElementById('rejectionReason').value = '';
+	    const modal = bootstrap.Modal.getInstance(document.getElementById('rejectionReasonModal'));
+	    if (modal) modal.hide();
+	}
+
+	function clearSelectedHospital() {
+	    document.getElementById('targetHospitalId').value = '';
+	    document.getElementById('selectedHospitalDisplay').style.display = 'none';
+	}
+
+	function updateActiveReferralsList() {
+	    const container = document.getElementById('activeReferralsList');
+	    if (!container) return;
+
+	    container.innerHTML = '';
+
+	    if (activeReferrals.length === 0) {
+	        container.innerHTML = '<div class="p-3 text-muted">No active referrals</div>';
+	        return;
+	    }
+
+	    activeReferrals.forEach(referral => {
+	        const item = document.createElement('div');
+	        item.className = 'list-group-item';
+	        item.innerHTML = `
+	            <div class="d-flex justify-content-between align-items-start">
+	                <div>
+	                    <h6 class="mb-1">Patient (${referral.patient_age} years, ${referral.patient_gender})</h6>
+	                    <small class="text-muted">${referral.requesting_hospital}</small>
+	                    <br>
+	                    <small class="text-muted">${referral.reason}</small>
+	                </div>
+	                <div class="text-end">
+	                    <span class="badge bg-warning">${Math.floor(referral.time_remaining)}s</span>
+	                    <br>
+	                    <small class="text-muted">${referral.urgency}</small>
+	                </div>
+	            </div>
+	        `;
+	        container.appendChild(item);
+	    });
+	}
+
+	function showAlert(message, type) {
+	    const alertDiv = document.createElement('div');
+	    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+	    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+	    alertDiv.innerHTML = `
+	        ${message}
+	        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+	    `;
+
+	    document.body.appendChild(alertDiv);
+
+	    setTimeout(() => {
+	        if (alertDiv.parentNode) {
+	            alertDiv.remove();
+	        }
+	    }, 5000);
+	}
+
+	function testNotificationSound() {
+	    console.log('Testing notification sound...');
+	    console.log('Audio enabled:', audioEnabled);
+	    console.log('Is sound playing:', isSoundPlaying);
+
+	    const audio = document.getElementById('notificationSound');
+	    if (!audio) {
+	        console.error('Audio element not found');
+	        showAlert('Audio element not found', 'error');
+	        return;
+	    }
+
+	    console.log('Audio element found:', audio);
+	    console.log('Audio src:', audio.src);
+	    console.log('Audio readyState:', audio.readyState);
+
+	    // Try to play the sound
+	    audio.currentTime = 0;
+	    audio.play().then(() => {
+	        console.log('Test sound played successfully');
+	        showAlert('Test sound played successfully!', 'success');
+	        audioEnabled = true;
+	    }).catch(e => {
+	        console.error('Test sound failed:', e);
+	        showAlert(`Test sound failed: ${e.message}`, 'error');
+
+	        if (e.name === 'NotAllowedError') {
+	            showAlert('Browser blocked autoplay. Please click anywhere on the page first.', 'warning');
+	        }
+	    });
+	}
 </script>
+
 {% endblock %}

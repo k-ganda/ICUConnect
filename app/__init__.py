@@ -55,6 +55,7 @@ def create_app():
         from app.routes.admission_routes import admission_bp
         from app.routes.discharge_routes import discharge_bp
         from app.routes.prediction_routes import prediction_bp
+        from app.routes.referral_routes import referral_bp
         
         app.register_blueprint(main_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -63,6 +64,7 @@ def create_app():
         app.register_blueprint(admission_bp, url_prefix='/admissions')
         app.register_blueprint(discharge_bp, url_prefix='/discharges')
         app.register_blueprint(prediction_bp, url_prefix='/api')
+        app.register_blueprint(referral_bp, url_prefix='/referrals')
         
         # Global context processor for all templates
         @app.context_processor

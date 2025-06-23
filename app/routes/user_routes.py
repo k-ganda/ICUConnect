@@ -17,8 +17,10 @@ def dashboard():
         flash('Hospital not found', 'danger')
         return redirect(url_for('auth.login'))
     
-    all_hospitals = Hospital.query.all()
+    # Get all hospitals except the current user's hospital
+    all_hospitals = Hospital.query.filter(Hospital.id != hospital.id).all()
     hospitals_data = [{
+        'id': h.id,
         'name': h.name,
         'lat': h.latitude,
         'lng': h.longitude,

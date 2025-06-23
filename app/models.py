@@ -196,3 +196,112 @@ class Discharge(db.Model):
     @property
     def length_of_stay(self):
         return (self.discharge_time - self.admission_time).days
+
+class ReferralRequest(db.Model):
+    """Referral requests between hospitals"""
+    __tablename__ = 'referral_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    requesting_hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    target_hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('admissions.id'), nullable=True)
+    
+    # Patient details for referral
+    
+    patient_age = db.Column(db.Integer)
+    patient_gender = db.Column(db.String(10))
+    reason_for_referral = db.Column(db.Text, nullable=False)
+    urgency_level = db.Column(db.String(20), default='Medium')  # High/Medium/Low
+    special_requirements = db.Column(db.Text)  # Equipment, specialists needed
+    
+    # Communication details
+    contact_method = db.Column(db.String(20))  # SMS/Call/Email
+    contact_number = db.Column(db.String(20))
+    contact_email = db.Column(db.String(120))
+    
+    # Status tracking
+    status = db.Column(db.String(20), default='Pending')  # Pending/Accepted/Rejected/Escalated
+    priority = db.Column(db.Integer, default=1)  # 1=highest priority
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    responded_at = db.Column(db.DateTime)
+    escalated_at = db.Column(db.DateTime)
+    
+    # Relationships
+    requesting_hospital = db.relationship('Hospital', foreign_keys=[requesting_hospital_id])
+    target_hospital = db.relationship('Hospital', foreign_keys=[target_hospital_id])
+    patient = db.relationship('Admission')
+    responses = db.relationship('ReferralResponse', back_populates='referral_request')
+    
+    @property
+    def time_since_created(self):
+        """Get time elapsed since referral was created"""
+        return (datetime.utcnow() - self.created_at).total_seconds() / 60  # in minutes
+    
+    @property
+    def needs_escalation(self):
+        """Check if referral needs escalation based on time and priority"""
+        if self.status == 'Pending':
+            if self.urgency_level == 'High' and self.time_since_created > 5:
+                return True
+            elif self.urgency_level == 'Medium' and self.time_since_created > 15:
+                return True
+            elif self.time_since_created > 30:
+                return True
+        return False
+
+class ReferralResponse(db.Model):
+    """Responses to referral requests"""
+    __tablename__ = 'referral_responses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    referral_request_id = db.Column(db.Integer, db.ForeignKey('referral_requests.id'), nullable=False)
+    responding_hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    
+    # Response details
+    response_type = db.Column(db.String(20), nullable=False)  # Accept/Reject/Request_Info
+    response_message = db.Column(db.Text)
+    available_beds = db.Column(db.Integer)
+    estimated_arrival_time = db.Column(db.String(50))  # "30 minutes", "2 hours"
+    
+    # Contact details of responding person
+    responder_name = db.Column(db.String(100))
+    responder_phone = db.Column(db.String(20))
+    responder_email = db.Column(db.String(120))
+    
+    # Timestamps
+    responded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    referral_request = db.relationship('ReferralRequest', back_populates='responses')
+    responding_hospital = db.relationship('Hospital')
+
+class HospitalContact(db.Model):
+    """Contact information for hospitals"""
+    __tablename__ = 'hospital_contacts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    
+    # Contact details
+    contact_type = db.Column(db.String(20), nullable=False)  # Emergency/Referral/General
+    contact_name = db.Column(db.String(100))
+    phone_number = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    whatsapp = db.Column(db.String(20))
+    
+    # Availability
+    is_primary = db.Column(db.Boolean, default=False)  # Primary contact for referrals
+    is_active = db.Column(db.Boolean, default=True)
+    preferred_contact_method = db.Column(db.String(20))  # SMS/Call/Email/WhatsApp
+    
+    # Response time tracking
+    avg_response_time = db.Column(db.Float)  # in minutes
+    last_response_time = db.Column(db.DateTime)
+    
+    # Relationships
+    hospital = db.relationship('Hospital', backref='contacts')
+    
+    def __repr__(self):
+        return f"<HospitalContact {self.contact_name} ({self.contact_type})>"
