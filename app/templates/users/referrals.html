@@ -183,9 +183,9 @@
 </div>
 
 <!-- Notification Sound -->
-<audio id="notificationSound" preload="auto">
+<audio id="notificationSound" preload="auto" loop>
 	<source
-		src="{{ url_for('static', filename='sounds/notification.mp3') }}"
+		src="{{ url_for('static', filename='sounds/notificationsound.mp3') }}"
 		type="audio/mpeg" />
 </audio>
 {% endblock %} {% block scripts %}
@@ -195,9 +195,13 @@
 	let activeReferrals = [];
 	let notificationInterval;
 	let currentReferralId = null;
+	let handledReferrals = [];
+	let notificationAudio = null;
+	let countdownInterval = null;
 
 	// Initialize map and referral system
 	document.addEventListener('DOMContentLoaded', function () {
+		notificationAudio = document.getElementById('notificationSound');
 		loadAllReferrals();
 		setupEventListeners();
 		startNotificationCheck();
@@ -248,7 +252,7 @@
 
 			row.innerHTML = `
 	            <td>
-	                <strong>${referral.patient_name}</strong><br>
+	                
 	                <small class="text-muted">${referral.patient_age} years, ${
 				referral.patient_gender
 			}</small>
@@ -357,7 +361,6 @@
 
 	function submitReferral() {
 		const formData = {
-			patient_name: document.getElementById('patientName').value,
 			patient_age: parseInt(document.getElementById('patientAge').value),
 			patient_gender: document.getElementById('patientGender').value,
 			target_hospital_id: document.getElementById('targetHospitalSelect').value,
@@ -399,40 +402,31 @@
 	}
 
 	function startNotificationCheck() {
-		// Check for new referrals every 5 seconds
 		setInterval(() => {
 			fetch('/referrals/api/pending-referrals')
 				.then((response) => response.json())
 				.then((data) => {
 					if (data.success && data.referrals.length > 0) {
-						const newReferrals = data.referrals.filter(
-							(ref) => !activeReferrals.find((ar) => ar.id === ref.id)
+						const pending = data.referrals.filter(
+							(ref) => !handledReferrals.includes(ref.id)
 						);
-
-						if (newReferrals.length > 0) {
-							showReferralModal(newReferrals[0]);
+						if (pending.length > 0) {
+							const latest = pending[0];
+							showReferralModal(latest);
 							playNotificationSound();
+							handledReferrals.push(latest.id);
 						}
-
-						activeReferrals = data.referrals;
-						updateReferralsTable();
-						updateStatistics();
 					}
-				})
-				.catch((error) => {
-					console.error('Error checking referrals:', error);
 				});
 		}, 5000);
 	}
 
 	function showReferralModal(referral) {
 		currentReferralId = referral.id;
-
 		document.getElementById('referralDetails').innerHTML = `
 	        <div class="row">
 	            <div class="col-md-6">
 	                <h6>Patient Information</h6>
-	                <p><strong>Name:</strong> ${referral.patient_name}</p>
 	                <p><strong>Age:</strong> ${referral.patient_age}</p>
 	                <p><strong>Gender:</strong> ${referral.patient_gender}</p>
 	                ${
@@ -459,11 +453,7 @@
 							: ''
 					}
 	    `;
-
-		// Start countdown timer
-		startCountdown(referral.time_remaining);
-
-		// Show modal
+		startCountdown(120); // Always start at 2 minutes
 		const modal = new bootstrap.Modal(
 			document.getElementById('referralResponseModal')
 		);
@@ -471,19 +461,19 @@
 	}
 
 	function startCountdown(initialTime) {
-		let timeLeft = initialTime;
+		let timeLeft =
+			typeof initialTime === 'number' && initialTime > 0 ? initialTime : 120;
 		const timeElement = document.getElementById('timeRemaining');
-
-		const countdown = setInterval(() => {
+		clearInterval(countdownInterval);
+		countdownInterval = setInterval(() => {
 			const minutes = Math.floor(timeLeft / 60);
 			const seconds = timeLeft % 60;
 			timeElement.textContent = `${minutes}:${seconds
 				.toString()
 				.padStart(2, '0')}`;
-
 			if (timeLeft <= 0) {
-				clearInterval(countdown);
-				// Auto-escalate or timeout
+				clearInterval(countdownInterval);
+				stopNotificationSound();
 				if (currentReferralId) {
 					escalateReferral(currentReferralId);
 				}
@@ -494,7 +484,8 @@
 
 	function acceptReferral() {
 		if (!currentReferralId) return;
-
+		stopNotificationSound();
+		clearInterval(countdownInterval);
 		fetch('/referrals/api/respond-to-referral', {
 			method: 'POST',
 			headers: {
@@ -527,7 +518,8 @@
 
 	function rejectReferral(reason) {
 		if (!currentReferralId) return;
-
+		stopNotificationSound();
+		clearInterval(countdownInterval);
 		fetch('/referrals/api/respond-to-referral', {
 			method: 'POST',
 			headers: {
@@ -585,8 +577,17 @@
 	}
 
 	function playNotificationSound() {
-		const audio = document.getElementById('notificationSound');
-		audio.play().catch((e) => console.log('Audio play failed:', e));
+		if (notificationAudio) {
+			notificationAudio.currentTime = 0;
+			notificationAudio.play().catch(() => {});
+		}
+	}
+
+	function stopNotificationSound() {
+		if (notificationAudio) {
+			notificationAudio.pause();
+			notificationAudio.currentTime = 0;
+		}
 	}
 </script>
 {% endblock %}

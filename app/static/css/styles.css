@@ -345,19 +345,29 @@ body {
 }
 
 /* Notification animations */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes fadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; }
-    }
-    
-    .notification-alert {
-        transition: all 0.3s ease;
-    }
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fadeOut {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+.notification-alert {
+	transition: all 0.3s ease;
+}
 
 /* Card Styles */
 .stat-card {
@@ -904,4 +914,237 @@ body {
 
 .discharges .patient-row:hover {
 	background-color: #f5f5f5;
+}
+
+/* ============================== */
+/* Settings Page Specific Styles */
+/* ============================== */
+
+.settings-page .card {
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	border: none;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-page .card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settings-page .card-header {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	border-radius: 12px 12px 0 0 !important;
+	border: none;
+	padding: 1.25rem 1.5rem;
+}
+
+.settings-page .card-header h5 {
+	margin: 0;
+	font-weight: 600;
+}
+
+.settings-page .card-body {
+	padding: 1.5rem;
+}
+
+.settings-page .form-check {
+	padding-left: 2rem;
+	margin-bottom: 1rem;
+}
+
+.settings-page .form-check-input {
+	width: 1.25rem;
+	height: 1.25rem;
+	margin-left: -2rem;
+	border: 2px solid #dee2e6;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+.settings-page .form-check-input:checked {
+	background-color: #667eea;
+	border-color: #667eea;
+}
+
+.settings-page .form-check-label {
+	font-weight: 500;
+	color: #495057;
+	cursor: pointer;
+}
+
+.settings-page .form-range {
+	height: 6px;
+	border-radius: 3px;
+	background: #e9ecef;
+}
+
+.settings-page .form-range::-webkit-slider-thumb {
+	background: #667eea;
+	border: none;
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+
+.settings-page .form-range::-moz-range-thumb {
+	background: #667eea;
+	border: none;
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+
+.settings-page .form-select {
+	border-radius: 8px;
+	border: 2px solid #e9ecef;
+	padding: 0.75rem 1rem;
+	transition: border-color 0.2s ease;
+}
+
+.settings-page .form-select:focus {
+	border-color: #667eea;
+	box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.settings-page .btn {
+	border-radius: 8px;
+	padding: 0.75rem 1.5rem;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+
+.settings-page .btn-primary {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+}
+
+.settings-page .btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.settings-page .btn-outline-primary {
+	border-color: #667eea;
+	color: #667eea;
+}
+
+.settings-page .btn-outline-primary:hover {
+	background-color: #667eea;
+	border-color: #667eea;
+}
+
+.settings-page .btn-outline-success {
+	border-color: #28a745;
+	color: #28a745;
+}
+
+.settings-page .btn-outline-success:hover {
+	background-color: #28a745;
+	border-color: #28a745;
+}
+
+.settings-page .alert {
+	border-radius: 8px;
+	border: none;
+	padding: 1rem 1.25rem;
+}
+
+.settings-page .alert-info {
+	background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+	color: #1565c0;
+}
+
+.settings-page .alert-success {
+	background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+	color: #2e7d32;
+}
+
+.settings-page .alert-warning {
+	background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
+	color: #ef6c00;
+}
+
+.settings-page h6.text-muted {
+	font-weight: 600;
+	color: #6c757d !important;
+	margin-bottom: 1rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 2px solid #f8f9fa;
+}
+
+.settings-page .form-text {
+	font-size: 0.875rem;
+	color: #6c757d;
+	margin-top: 0.25rem;
+}
+
+.settings-page .d-flex.gap-2 {
+	gap: 0.75rem !important;
+}
+
+/* Settings Summary Styles */
+.settings-page #settingsSummary .row {
+	margin-bottom: 0.5rem;
+}
+
+.settings-page #settingsSummary .col-6 {
+	padding: 0.5rem;
+}
+
+.settings-page #settingsSummary small {
+	font-weight: 600;
+	color: #6c757d;
+}
+
+.settings-page #settingsSummary div {
+	font-weight: 500;
+	color: #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.settings-page .card-body {
+		padding: 1rem;
+	}
+
+	.settings-page .btn {
+		width: 100%;
+		margin-bottom: 0.5rem;
+	}
+
+	.settings-page .d-flex.gap-2 {
+		flex-direction: column;
+	}
+}
+
+/* Animation for settings cards */
+.settings-page .card {
+	animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.settings-page .card:nth-child(1) {
+	animation-delay: 0.1s;
+}
+
+.settings-page .card:nth-child(2) {
+	animation-delay: 0.2s;
+}
+
+.settings-page .card:nth-child(3) {
+	animation-delay: 0.3s;
 }

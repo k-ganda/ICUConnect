@@ -264,45 +264,206 @@
 	let isSoundPlaying = false;
 	let currentNotification = null;
 	let audioEnabled = false; // Track if user has enabled audio
+	let userSettings = null; // Store user notification settings
+	let audioMessageShown = false; // Track if we've shown the audio enable message
 
 	document.addEventListener('DOMContentLoaded', function() {
-	    // Initialize map
-	    initMap();
+	    // Load user settings first
+	    loadUserSettings().then(() => {
+	        // Initialize map
+	        initMap();
 
-	    // Initialize referral system
-	    initReferralSystem();
+	        // Initialize referral system
+	        initReferralSystem();
 
-	    // Start checking for notifications
-	    startNotificationCheck();
+	        // Start checking for notifications
+	        startNotificationCheck();
 
-	    // Setup event listeners
-	    setupEventListeners();
+	        // Setup event listeners
+	        setupEventListeners();
 
-	    // Enable audio on first user interaction
-	    document.addEventListener('click', function enableAudio() {
-	        if (!audioEnabled) {
-	            const audio = document.getElementById('notificationSound');
-	            if (audio) {
-	                audio.play().then(() => {
-	                    audio.pause();
-	                    audio.currentTime = 0;
-	                    audioEnabled = true;
-	                    console.log('Audio enabled on user interaction');
-	                }).catch(e => {
-	                    console.log('Audio still not enabled:', e);
-	                });
-	            }
+	        // Enable audio on first user interaction if settings allow
+	        if (userSettings && userSettings.audio_notifications) {
+	            document.addEventListener('click', function enableAudio() {
+	                if (!audioEnabled) {
+	                    const audio = document.getElementById('notificationSound');
+	                    if (audio) {
+	                        audio.play().then(() => {
+	                            audio.pause();
+	                            audio.currentTime = 0;
+	                            audioEnabled = true;
+	                            audioMessageShown = false; // Reset the message flag
+	                            console.log('Audio enabled on user interaction');
+
+	                            // Save the audio enabled status to database
+	                            saveAudioEnabledStatus(true);
+	                        }).catch(e => {
+	                            console.log('Audio still not enabled:', e);
+	                        });
+	                    }
+	                }
+	                // Remove the event listener after first interaction
+	                document.removeEventListener('click', enableAudio);
+	            }, { once: true });
 	        }
-	        // Remove the event listener after first interaction
-	        document.removeEventListener('click', enableAudio);
-	    }, { once: true });
+	    });
+
+	    // Global modal cleanup listener
+	    document.addEventListener('click', function(e) {
+	        // If clicking on backdrop, clean up
+	        if (e.target.classList.contains('modal-backdrop')) {
+	            cleanupModalArtifacts();
+	        }
+	    });
+
+	    // Listen for modal hidden events
+	    document.addEventListener('hidden.bs.modal', function(e) {
+	        cleanupModalArtifacts();
+	    });
 	});
+
+	function loadUserSettings() {
+	    console.log('Loading user settings...');
+	    return fetch('/user/api/settings')
+	        .then(response => {
+	            console.log('Settings API response status:', response.status);
+	            return response.json();
+	        })
+	        .then(data => {
+	            console.log('Settings API response data:', data);
+	            if (data.success) {
+	                userSettings = data.settings;
+	                console.log('User settings loaded successfully:', userSettings);
+
+	                // Set audio volume - wait for audio element to be available
+	                setTimeout(() => {
+	                    const audio = document.getElementById('notificationSound');
+	                    if (audio) {
+	                        audio.volume = userSettings.audio_volume;
+	                        console.log('Audio volume set to:', userSettings.audio_volume);
+
+	                        // Test if audio can actually play (browser autoplay policy)
+	                        if (userSettings.audio_enabled && userSettings.audio_notifications) {
+	                            testAudioPlayability();
+	                        }
+	                    } else {
+	                        console.warn('Audio element not found when setting volume');
+	                    }
+	                }, 100);
+	            } else {
+	                console.error('Settings API returned success: false');
+	            }
+	        })
+	        .catch(error => {
+	            console.error('Error loading user settings:', error);
+	            // Use default settings if loading fails
+	            userSettings = {
+	                audio_notifications: true,
+	                visual_notifications: true,
+	                browser_notifications: false,
+	                audio_volume: 0.7,
+	                audio_enabled: false,
+	                referral_notifications: true,
+	                bed_status_notifications: true,
+	                system_notifications: true,
+	                notification_duration: 120,
+	                auto_escalate: true
+	            };
+	            console.log('Using default settings:', userSettings);
+	        });
+	}
+
+	function testAudioPlayability() {
+	    const audio = document.getElementById('notificationSound');
+	    if (!audio) return;
+
+	    // Try to play a silent sound to test if audio is allowed
+	    const originalVolume = audio.volume;
+	    audio.volume = 0; // Silent test
+
+	    audio.play().then(() => {
+	        audio.pause();
+	        audio.currentTime = 0;
+	        audio.volume = originalVolume;
+	        audioEnabled = true;
+	        audioMessageShown = false; // Reset the message flag
+	        console.log('Audio playability test passed - audio is enabled');
+	    }).catch(e => {
+	        audio.volume = originalVolume;
+	        audioEnabled = false;
+	        console.log('Audio playability test failed - user interaction required:', e);
+	    });
+	}
+
+	function saveAudioEnabledStatus(enabled) {
+	    console.log('Saving audio enabled status:', enabled);
+	    fetch('/user/api/settings', {
+	        method: 'POST',
+	        headers: {
+	            'Content-Type': 'application/json',
+	        },
+	        body: JSON.stringify({ audio_enabled: enabled })
+	    })
+	    .then(response => {
+	        console.log('Save settings response status:', response.status);
+	        return response.json();
+	    })
+	    .then(data => {
+	        console.log('Save settings response data:', data);
+	        if (data.success) {
+	            console.log('Audio enabled status saved successfully:', enabled);
+	        } else {
+	            console.error('Failed to save audio enabled status');
+	        }
+	    })
+	    .catch(error => {
+	        console.error('Error saving audio enabled status:', error);
+	    });
+	}
 
 	function initMap() {
 	    const map = L.map('map').setView([-0.1022, 34.7617], 10);
 	    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	        attribution: '© OpenStreetMap'
 	    }).addTo(map);
+
+	    // Load Kisumu County boundary
+	    fetch("/user/kisumu-geojson")
+	        .then((response) => response.json())
+	        .then((data) => {
+	            console.log('GeoJSON loaded:', data);
+
+	            // Handle GeometryCollection format
+	            if (data.type === 'GeometryCollection') {
+	                const multiPolygon = data.geometries.find(
+	                    (g) => g.type === 'MultiPolygon'
+	                );
+
+	                if (multiPolygon) {
+	                    const feature = {
+	                        type: 'Feature',
+	                        properties: {},
+	                        geometry: multiPolygon,
+	                    };
+
+	                    const countyLayer = L.geoJSON(feature, {
+	                        style: {
+	                            color: '#3388ff',
+	                            weight: 3,
+	                            opacity: 1,
+	                            fillOpacity: 0.2,
+	                            fillColor: '#3388ff',
+	                        },
+	                    }).addTo(map);
+
+	                    map.fitBounds(countyLayer.getBounds());
+	                    map.setMaxBounds(countyLayer.getBounds().pad(0.5));
+	                }
+	            }
+	        })
+	        .catch((error) => {
+	            console.error('Error loading Kisumu boundary:', error);
+	        });
 
 	    // Load hospitals data
 	    const hospitals = {{ hospitals_data|tojson|safe }};
@@ -351,9 +512,11 @@
 	function getAvailabilityColor(available, total) {
 	    if (total <= 0) return 'gray';
 	    const percentage = (available / total) * 100;
-	    if (percentage >= 30) return 'green';
-	    if (percentage >= 10) return 'orange';
-	    return 'red';
+
+	    // More appropriate thresholds for ICU beds
+	    if (percentage >= 50) return 'green';      // Good availability (≥50%)
+	    if (percentage >= 20) return 'orange';     // Limited availability (20-49%)
+	    return 'red';                              // Critical availability (<20%)
 	}
 
 	function createHospitalIcon(color, available) {
@@ -441,6 +604,12 @@
 	}
 
 	function playNotificationSound() {
+	    // Check if audio notifications are enabled in user settings
+	    if (!userSettings || !userSettings.audio_notifications) {
+	        console.log('Audio notifications disabled in user settings');
+	        return;
+	    }
+
 	    const audio = document.getElementById('notificationSound');
 	    if (!audio) {
 	        console.error('Audio element not found');
@@ -461,18 +630,26 @@
 	            audio.currentTime = 0;
 	            audioEnabled = true;
 	            console.log('Audio enabled successfully');
+	            // Save the audio enabled status to database
+	            saveAudioEnabledStatus(true);
 	            // Now try to play the notification sound
 	            playNotificationSound();
 	        }).catch(e => {
 	            console.log('Audio not enabled yet:', e);
-	            // Show a message to the user
-	            showAlert('Click anywhere on the page to enable notification sounds', 'info');
+	            // Only show the message once per session
+	            if (!audioMessageShown) {
+	                showAlert('Click anywhere on the page to enable notification sounds', 'info');
+	                audioMessageShown = true;
+	            }
 	        });
 	        return;
 	    }
 
 	    isSoundPlaying = true;
 	    console.log('Starting notification sound');
+
+	    // Set volume from user settings
+	    audio.volume = userSettings.audio_volume || 0.7;
 
 	    // Function to restart the sound when it ends
 	    const restartSound = () => {
@@ -548,6 +725,12 @@
 	}
 
 	function showVisualNotification() {
+	    // Check if visual notifications are enabled in user settings
+	    if (!userSettings || !userSettings.visual_notifications) {
+	        console.log('Visual notifications disabled in user settings');
+	        return;
+	    }
+
 	    // Remove any existing notification
 	    if (currentNotification) {
 	        currentNotification.remove();
@@ -616,8 +799,10 @@
 	    // Clear any existing countdown
 	    if (countdownInterval) clearInterval(countdownInterval);
 
+	    // Use user's notification duration setting if available, otherwise use provided seconds
+	    const notificationDuration = userSettings ? userSettings.notification_duration : 120;
 	    const timeElement = document.getElementById('timeRemaining');
-	    let remaining = seconds;
+	    let remaining = seconds || notificationDuration;
 
 	    countdownInterval = setInterval(() => {
 	        const mins = Math.floor(remaining / 60);
@@ -639,7 +824,10 @@
 	            if (currentReferralId) {
 	                activeReferrals = activeReferrals.filter(ref => ref.id !== currentReferralId);
 	                updateActiveReferralsList();
-	                checkAndEscalateReferral(currentReferralId);
+	                // Only auto-escalate if user has enabled it
+	                if (userSettings && userSettings.auto_escalate) {
+	                    checkAndEscalateReferral(currentReferralId);
+	                }
 	            }
 	        }
 	        remaining--;
@@ -779,6 +967,7 @@
 	                }
 	                showAlert('Referral accepted successfully!', 'success');
 	                closeReferralModal();
+	                cleanupModalArtifacts();
 	                loadActiveReferrals();
 	            } else {
 	                showAlert(data.message, 'error');
@@ -812,6 +1001,7 @@
 	                showAlert('Referral rejected', 'info');
 	                closeReferralModal();
 	                closeRejectionModal();
+	                cleanupModalArtifacts();
 	                loadActiveReferrals();
 	            } else {
 	                showAlert(data.message, 'error');
@@ -823,6 +1013,22 @@
 	        });
 	}
 
+	function cleanupModalArtifacts() {
+	    // Remove any remaining modal backdrops
+	    const backdrops = document.querySelectorAll('.modal-backdrop');
+	    backdrops.forEach(backdrop => backdrop.remove());
+
+	    // Remove modal-open class from body
+	    document.body.classList.remove('modal-open');
+	    document.body.style.overflow = '';
+	    document.body.style.paddingRight = '';
+
+	    // Reset current referral ID
+	    currentReferralId = null;
+
+	    console.log('Modal artifacts cleaned up');
+	}
+
 	function closeReferralForm() {
 	    document.getElementById('referralForm').reset();
 	    document.getElementById('referralFormCard').style.display = 'none';
@@ -831,13 +1037,35 @@
 
 	function closeReferralModal() {
 	    const modal = bootstrap.Modal.getInstance(document.getElementById('referralResponseModal'));
-	    if (modal) modal.hide();
+	    if (modal) {
+	        modal.hide();
+	        // Remove any remaining backdrop
+	        const backdrop = document.querySelector('.modal-backdrop');
+	        if (backdrop) {
+	            backdrop.remove();
+	        }
+	        // Remove modal-open class from body
+	        document.body.classList.remove('modal-open');
+	        document.body.style.overflow = '';
+	        document.body.style.paddingRight = '';
+	    }
 	}
 
 	function closeRejectionModal() {
 	    document.getElementById('rejectionReason').value = '';
 	    const modal = bootstrap.Modal.getInstance(document.getElementById('rejectionReasonModal'));
-	    if (modal) modal.hide();
+	    if (modal) {
+	        modal.hide();
+	        // Remove any remaining backdrop
+	        const backdrop = document.querySelector('.modal-backdrop');
+	        if (backdrop) {
+	            backdrop.remove();
+	        }
+	        // Remove modal-open class from body
+	        document.body.classList.remove('modal-open');
+	        document.body.style.overflow = '';
+	        document.body.style.paddingRight = '';
+	    }
 	}
 
 	function clearSelectedHospital() {

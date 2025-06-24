@@ -21,30 +21,46 @@ def load_arima_model():
 
 @prediction_bp.route('/predict/occupancy', methods=['POST'])
 def predict_occupancy():
-    """Predict ICU occupancy for the next week"""
+    """Predict ICU occupancy for the next week, with surge alert"""
     try:
         # Load the ARIMA model
         model = load_arima_model()
         if model is None:
             return jsonify({'error': 'Failed to load model'}), 500
-        
-        # Get the number of weeks to predict (default 1)
+
+        # Get the number of weeks to predict (default 1) and ICU bed capacity (default 20)
         data = request.get_json() or {}
         weeks_ahead = data.get('weeks_ahead', 1)
-        
+        icu_bed_capacity = data.get('icu_bed_capacity', 20)  # Default to 20 if not provided
+
         # Make prediction
         forecast = model.forecast(steps=weeks_ahead)
-        
-        # Convert to list and round to 2 decimal places
         predictions = [round(float(pred), 2) for pred in forecast]
-        
+
         # Generate dates for the predictions
         current_date = datetime.now()
         prediction_dates = []
         for i in range(weeks_ahead):
             pred_date = current_date + timedelta(weeks=i+1)
             prediction_dates.append(pred_date.strftime('%Y-%m-%d'))
-        
+
+        # Surge alert logic (for the first prediction only)
+        surge_alert = False
+        description = ""
+        if predictions:
+            predicted_occupancy = predictions[0]
+            threshold = 0.8 * icu_bed_capacity
+            if predicted_occupancy >= threshold:
+                surge_alert = True
+                description = (
+                    f"Surge Alert: Predicted ICU occupancy ({predicted_occupancy}) is at or above 80% "
+                    f"of total ICU bed capacity ({icu_bed_capacity}). Immediate action may be required."
+                )
+            else:
+                description = (
+                    f"Predicted ICU occupancy ({predicted_occupancy}) is within safe limits (below 80% of capacity)."
+                )
+
         # Create response
         response = {
             'predictions': predictions,
@@ -53,11 +69,13 @@ def predict_occupancy():
                 'type': 'ARIMA',
                 'order': '(1, 1, 1)',
                 'description': 'Pediatric ICU Bed Occupancy Forecast'
-            }
+            },
+            'surge_alert': surge_alert,
+            'description': description
         }
-        
+
         return jsonify(response)
-    
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -80,7 +98,8 @@ def get_prediction_info():
                 'endpoint': '/predict/occupancy',
                 'method': 'POST',
                 'body': {
-                    'weeks_ahead': 'int (optional, default: 1)'
+                    'weeks_ahead': 'int (optional, default: 1)',
+                    'icu_bed_capacity': 'int (optional, default: 20)'
                 }
             }
         })

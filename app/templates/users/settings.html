@@ -1,0 +1,536 @@
+{% extends "users/base.html" %}
+
+{% block content %}
+<div class="container-fluid settings-page">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Notification Settings -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell me-2"></i>Notification Preferences
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="notificationSettingsForm">
+                        <!-- Notification Types -->
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-3">Notification Types</h6>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="referralNotifications" 
+                                       {% if settings.referral_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="referralNotifications">
+                                    <i class="fas fa-exchange-alt me-2"></i>ICU Referral Requests
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Get notified when new referral requests arrive
+                                </small>
+                            </div>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="bedStatusNotifications" 
+                                       {% if settings.bed_status_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="bedStatusNotifications">
+                                    <i class="fas fa-bed me-2"></i>Bed Status Changes
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Notifications when bed availability changes
+                                </small>
+                            </div>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="systemNotifications" 
+                                       {% if settings.system_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="systemNotifications">
+                                    <i class="fas fa-info-circle me-2"></i>System Notifications
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    General system updates and maintenance alerts
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Notification Methods -->
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-3">Notification Methods</h6>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="visualNotifications" 
+                                       {% if settings.visual_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="visualNotifications">
+                                    <i class="fas fa-eye me-2"></i>Visual Notifications
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Show popup notifications on screen
+                                </small>
+                            </div>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="audioNotifications" 
+                                       {% if settings.audio_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="audioNotifications">
+                                    <i class="fas fa-volume-up me-2"></i>Audio Notifications
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Play sound alerts for notifications
+                                </small>
+                            </div>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="browserNotifications" 
+                                       {% if settings.browser_notifications %}checked{% endif %}>
+                                <label class="form-check-label" for="browserNotifications">
+                                    <i class="fas fa-desktop me-2"></i>Browser Notifications
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Show notifications even when tab is not active
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Audio Settings -->
+                        <div class="mb-4" id="audioSettings" style="display: none;">
+                            <h6 class="text-muted mb-3">Audio Settings</h6>
+                            
+                            <div class="mb-3">
+                                <label for="audioVolume" class="form-label">
+                                    <i class="fas fa-volume-up me-2"></i>Volume
+                                </label>
+                                <input type="range" class="form-range" id="audioVolume" 
+                                       min="0" max="100" step="10" 
+                                       value="{{ (settings.audio_volume * 100) | int }}">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">0%</small>
+                                    <small class="text-muted" id="volumeDisplay">{{ (settings.audio_volume * 100) | int }}%</small>
+                                    <small class="text-muted">100%</small>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="testAudioBtn">
+                                    <i class="fas fa-play me-1"></i>Test Audio
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" id="enableAudioBtn">
+                                    <i class="fas fa-check me-1"></i>Enable Audio
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Timing Settings -->
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-3">Timing Settings</h6>
+                            
+                            <div class="mb-3">
+                                <label for="notificationDuration" class="form-label">
+                                    <i class="fas fa-clock me-2"></i>Notification Duration
+                                </label>
+                                <select class="form-select" id="notificationDuration">
+                                    <option value="60" {% if settings.notification_duration == 60 %}selected{% endif %}>1 minute</option>
+                                    <option value="120" {% if settings.notification_duration == 120 %}selected{% endif %}>2 minutes</option>
+                                    <option value="180" {% if settings.notification_duration == 180 %}selected{% endif %}>3 minutes</option>
+                                    <option value="300" {% if settings.notification_duration == 300 %}selected{% endif %}>5 minutes</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    How long to show referral notifications before auto-escalation
+                                </small>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoEscalate" 
+                                       {% if settings.auto_escalate %}checked{% endif %}>
+                                <label class="form-check-label" for="autoEscalate">
+                                    <i class="fas fa-arrow-up me-2"></i>Auto-escalate referrals
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Automatically escalate referrals if no response within the time limit
+                                </small>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Test Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-volume-up me-2"></i>Audio Test
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Browser Audio Policy:</strong> Most browsers block audio from playing automatically. 
+                        You need to interact with the page first to enable audio notifications.
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-primary" id="testNotificationBtn">
+                            <i class="fas fa-bell me-2"></i>Test Notification Sound
+                        </button>
+                        <small class="form-text text-muted d-block mt-2">
+                            Click this button to test if audio notifications are working
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary" id="requestNotificationPermissionBtn">
+                            <i class="fas fa-desktop me-2"></i>Enable Browser Notifications
+                        </button>
+                        <small class="form-text text-muted d-block mt-2">
+                            Request permission for browser notifications (works even when tab is not active)
+                        </small>
+                    </div>
+
+                    <div id="audioStatus" class="alert alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="audioStatusText">Audio not enabled</span>
+                    </div>
+
+                    <div id="browserNotificationStatus" class="alert alert-info" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="browserNotificationStatusText">Checking browser notification status...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Settings Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Current Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="settingsSummary">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Audio Enabled:</small>
+                                <div id="audioEnabledStatus">Checking...</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Browser Notifications:</small>
+                                <div id="browserNotificationEnabledStatus">Checking...</div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <small class="text-muted">Volume:</small>
+                                <div id="currentVolume">{{ (settings.audio_volume * 100) | int }}%</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Notification Duration:</small>
+                                <div id="currentDuration">{{ settings.notification_duration }} seconds</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Sound -->
+<audio id="notificationSound" preload="auto">
+    <source src="{{ url_for('static', filename='sounds/notificationsound.mp3') }}" type="audio/mpeg" />
+</audio>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let audioEnabled = false;
+    let browserNotificationsEnabled = false;
+    
+    // Initialize settings
+    loadSettings();
+    checkAudioStatus();
+    checkBrowserNotificationStatus();
+    
+    // Event listeners
+    document.getElementById('audioNotifications').addEventListener('change', toggleAudioSettings);
+    document.getElementById('audioVolume').addEventListener('input', updateVolumeDisplay);
+    document.getElementById('testAudioBtn').addEventListener('click', testAudio);
+    document.getElementById('enableAudioBtn').addEventListener('click', enableAudio);
+    document.getElementById('testNotificationBtn').addEventListener('click', testNotificationSound);
+    document.getElementById('requestNotificationPermissionBtn').addEventListener('click', requestNotificationPermission);
+    document.getElementById('notificationSettingsForm').addEventListener('submit', saveSettings);
+    
+    // Initialize audio settings visibility
+    toggleAudioSettings();
+    
+    function toggleAudioSettings() {
+        const audioSettings = document.getElementById('audioSettings');
+        const audioNotifications = document.getElementById('audioNotifications');
+        audioSettings.style.display = audioNotifications.checked ? 'block' : 'none';
+    }
+    
+    function updateVolumeDisplay() {
+        const volumeSlider = document.getElementById('audioVolume');
+        const volumeDisplay = document.getElementById('volumeDisplay');
+        const currentVolume = document.getElementById('currentVolume');
+        const volume = volumeSlider.value;
+        
+        volumeDisplay.textContent = volume + '%';
+        currentVolume.textContent = volume + '%';
+    }
+    
+    function loadSettings() {
+        fetch('/user/api/settings')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateSettingsDisplay(data.settings);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading settings:', error);
+                showAlert('Error loading settings', 'error');
+            });
+    }
+    
+    function updateSettingsDisplay(settings) {
+        // Update form values
+        document.getElementById('referralNotifications').checked = settings.referral_notifications;
+        document.getElementById('bedStatusNotifications').checked = settings.bed_status_notifications;
+        document.getElementById('systemNotifications').checked = settings.system_notifications;
+        document.getElementById('visualNotifications').checked = settings.visual_notifications;
+        document.getElementById('audioNotifications').checked = settings.audio_notifications;
+        document.getElementById('browserNotifications').checked = settings.browser_notifications;
+        document.getElementById('autoEscalate').checked = settings.auto_escalate;
+        
+        // Update volume
+        const volumeSlider = document.getElementById('audioVolume');
+        volumeSlider.value = Math.round(settings.audio_volume * 100);
+        updateVolumeDisplay();
+        
+        // Update notification duration
+        document.getElementById('notificationDuration').value = settings.notification_duration;
+        document.getElementById('currentDuration').textContent = settings.notification_duration + ' seconds';
+        
+        // Update audio enabled status
+        audioEnabled = settings.audio_enabled;
+        updateAudioStatus();
+    }
+    
+    function saveSettings(e) {
+        e.preventDefault();
+        
+        const formData = {
+            referral_notifications: document.getElementById('referralNotifications').checked,
+            bed_status_notifications: document.getElementById('bedStatusNotifications').checked,
+            system_notifications: document.getElementById('systemNotifications').checked,
+            visual_notifications: document.getElementById('visualNotifications').checked,
+            audio_notifications: document.getElementById('audioNotifications').checked,
+            browser_notifications: document.getElementById('browserNotifications').checked,
+            audio_volume: document.getElementById('audioVolume').value / 100,
+            audio_enabled: audioEnabled,
+            notification_duration: parseInt(document.getElementById('notificationDuration').value),
+            auto_escalate: document.getElementById('autoEscalate').checked
+        };
+        
+        fetch('/user/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Settings saved successfully!', 'success');
+            } else {
+                showAlert('Error saving settings', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error saving settings', 'error');
+        });
+    }
+    
+    function checkAudioStatus() {
+        const audio = document.getElementById('notificationSound');
+        if (audio) {
+            // Try to play a silent sound to check if audio is enabled
+            audio.volume = 0;
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+                audioEnabled = true;
+                updateAudioStatus();
+            }).catch(() => {
+                audioEnabled = false;
+                updateAudioStatus();
+            });
+        }
+    }
+    
+    function updateAudioStatus() {
+        const statusDiv = document.getElementById('audioStatus');
+        const statusText = document.getElementById('audioStatusText');
+        const enabledStatus = document.getElementById('audioEnabledStatus');
+        
+        if (audioEnabled) {
+            statusDiv.className = 'alert alert-success';
+            statusText.innerHTML = '<i class="fas fa-check me-2"></i>Audio is enabled and working';
+            enabledStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Enabled</span>';
+        } else {
+            statusDiv.className = 'alert alert-warning';
+            statusText.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Audio is not enabled. Click "Enable Audio" to activate.';
+            enabledStatus.innerHTML = '<span class="text-warning"><i class="fas fa-times"></i> Disabled</span>';
+        }
+        statusDiv.style.display = 'block';
+    }
+    
+    function enableAudio() {
+        const audio = document.getElementById('notificationSound');
+        if (audio) {
+            audio.volume = document.getElementById('audioVolume').value / 100;
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+                audioEnabled = true;
+                updateAudioStatus();
+                
+                // Save the audio enabled status
+                fetch('/user/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ audio_enabled: true })
+                });
+            }).catch(error => {
+                console.error('Error enabling audio:', error);
+                showAlert('Could not enable audio. Please check your browser settings.', 'error');
+            });
+        }
+    }
+    
+    function testAudio() {
+        const audio = document.getElementById('notificationSound');
+        if (audio && audioEnabled) {
+            audio.volume = document.getElementById('audioVolume').value / 100;
+            audio.currentTime = 0;
+            audio.play().catch(error => {
+                console.error('Error playing test audio:', error);
+                showAlert('Error playing test audio', 'error');
+            });
+        } else {
+            showAlert('Please enable audio first', 'warning');
+        }
+    }
+    
+    function testNotificationSound() {
+        const audio = document.getElementById('notificationSound');
+        if (!audio) {
+            showAlert('Audio element not found', 'error');
+            return;
+        }
+        
+        if (!audioEnabled) {
+            showAlert('Audio not enabled. Please click "Enable Audio" first.', 'warning');
+            return;
+        }
+        
+        audio.volume = document.getElementById('audioVolume').value / 100;
+        audio.currentTime = 0;
+        audio.play().then(() => {
+            showAlert('Test notification sound played successfully!', 'success');
+        }).catch(error => {
+            console.error('Test sound failed:', error);
+            showAlert('Error playing test sound: ' + error.message, 'error');
+        });
+    }
+    
+    function checkBrowserNotificationStatus() {
+        if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+                browserNotificationsEnabled = true;
+                updateBrowserNotificationStatus();
+            } else if (Notification.permission === 'denied') {
+                browserNotificationsEnabled = false;
+                updateBrowserNotificationStatus();
+            } else {
+                browserNotificationsEnabled = false;
+                updateBrowserNotificationStatus();
+            }
+        } else {
+            document.getElementById('browserNotificationStatusText').textContent = 'Browser notifications not supported';
+            document.getElementById('browserNotificationStatus').style.display = 'block';
+        }
+    }
+    
+    function updateBrowserNotificationStatus() {
+        const statusDiv = document.getElementById('browserNotificationStatus');
+        const statusText = document.getElementById('browserNotificationStatusText');
+        const enabledStatus = document.getElementById('browserNotificationEnabledStatus');
+        
+        if (browserNotificationsEnabled) {
+            statusDiv.className = 'alert alert-success';
+            statusText.innerHTML = '<i class="fas fa-check me-2"></i>Browser notifications are enabled';
+            enabledStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Enabled</span>';
+        } else {
+            statusDiv.className = 'alert alert-info';
+            statusText.innerHTML = '<i class="fas fa-info-circle me-2"></i>Browser notifications are not enabled. Click the button below to enable them.';
+            enabledStatus.innerHTML = '<span class="text-warning"><i class="fas fa-times"></i> Disabled</span>';
+        }
+        statusDiv.style.display = 'block';
+    }
+    
+    function requestNotificationPermission() {
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    browserNotificationsEnabled = true;
+                    updateBrowserNotificationStatus();
+                    showAlert('Browser notifications enabled successfully!', 'success');
+                } else {
+                    showAlert('Browser notifications were denied', 'warning');
+                }
+            });
+        } else {
+            showAlert('Browser notifications are not supported in this browser', 'error');
+        }
+    }
+    
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %} 

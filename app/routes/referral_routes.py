@@ -106,7 +106,7 @@ def initiate_referral():
             status='Pending'
         )
         
-        print(f"Creating referral: {referral.patient_name} from {requesting_hospital.name} (ID: {requesting_hospital.id}) to {target_hospital.name} (ID: {target_hospital_id})")
+        print(f"Creating referral: from {requesting_hospital.name} (ID: {requesting_hospital.id}) to {target_hospital.name} (ID: {target_hospital_id})")
         
         db.session.add(referral)
         db.session.commit()
@@ -269,7 +269,7 @@ def escalate_referral(referral_id):
         # Sort by distance and exclude already contacted hospitals
         contacted_hospitals = [r.target_hospital_id for r in ReferralRequest.query.filter_by(
             requesting_hospital_id=current_hospital.id,
-            patient_name=referral.patient_name
+            
         ).all()]
         
         available_hospitals = []
@@ -346,7 +346,6 @@ def all_referrals():
             
             referrals_data.append({
                 'id': ref.id,
-                'patient_name': ref.patient_name,
                 'patient_age': ref.patient_age,
                 'patient_gender': ref.patient_gender,
                 'primary_diagnosis': ref.primary_diagnosis,
@@ -387,7 +386,6 @@ def check_referral_status(referral_id):
             'status': referral.status,
             'requesting_hospital_id': referral.requesting_hospital_id,
             'target_hospital_id': referral.target_hospital_id,
-            'patient_name': referral.patient_name,
             'created_at': referral.created_at.isoformat()
         }), 200
         

@@ -90,7 +90,42 @@ class User(UserMixin, db.Model):
     def get_id(self):
         return f"user-{self.id}"
 
+
+class UserSettings(db.Model):
+    """User notification and preference settings"""
+    __tablename__ = 'user_settings'
     
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    
+    # Notification preferences
+    audio_notifications = db.Column(db.Boolean, default=True)
+    visual_notifications = db.Column(db.Boolean, default=True)
+    browser_notifications = db.Column(db.Boolean, default=False)
+    
+    # Audio settings
+    audio_volume = db.Column(db.Float, default=0.7)  # 0.0 to 1.0
+    audio_enabled = db.Column(db.Boolean, default=False)  # User has explicitly enabled audio
+    
+    # Notification types
+    referral_notifications = db.Column(db.Boolean, default=True)
+    bed_status_notifications = db.Column(db.Boolean, default=True)
+    system_notifications = db.Column(db.Boolean, default=True)
+    
+    # Timing preferences
+    notification_duration = db.Column(db.Integer, default=120)  # seconds
+    auto_escalate = db.Column(db.Boolean, default=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationships
+    user = db.relationship('User', backref='settings')
+    
+    def __repr__(self):
+        return f"<UserSettings(user_id={self.user_id})>"
+
 
 # Flask-Login loader for admins
 @login_manager.user_loader
@@ -213,6 +248,9 @@ class ReferralRequest(db.Model):
     reason_for_referral = db.Column(db.Text, nullable=False)
     urgency_level = db.Column(db.String(20), default='Medium')  # High/Medium/Low
     special_requirements = db.Column(db.Text)  # Equipment, specialists needed
+    primary_diagnosis = db.Column(db.String(255))
+    current_treatment = db.Column(db.Text)
+    
     
     # Communication details
     contact_method = db.Column(db.String(20))  # SMS/Call/Email
