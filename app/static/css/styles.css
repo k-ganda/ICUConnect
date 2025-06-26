@@ -237,6 +237,7 @@ body {
 .wrapper {
 	display: flex;
 	width: 100%;
+	transition: all 0.3s;
 }
 
 /* Sidebar Styles */
@@ -279,6 +280,7 @@ body {
 #content {
 	width: 100%;
 	min-height: 100vh;
+	transition: margin-left 0.3s;
 }
 
 /* Map Styles */
@@ -422,17 +424,47 @@ body {
 /* Responsive Fixes */
 @media (max-width: 768px) {
 	#sidebar {
-		margin-left: -250px;
+		position: fixed;
+		left: -250px;
+		top: 0;
+		height: 100vh;
+		z-index: 2000;
+		width: 250px;
+		min-width: 250px;
+		transition: left 0.3s;
+		box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
 	}
 	#sidebar.active {
-		margin-left: 0;
+		left: 0;
+	}
+	#sidebar.collapsed {
+		min-width: 60px;
+		width: 60px;
+		left: 0;
+	}
+	.wrapper {
+		flex-direction: column;
 	}
 	#content {
 		width: 100%;
+		margin-left: 0 !important;
 	}
-	.card-body {
-		padding: 1rem !important;
+	#mobileSidebarToggle {
+		display: inline-flex !important;
+		align-items: center;
+		justify-content: center;
+		background: none;
+		border: none;
+		font-size: 1.5rem;
+		margin-right: 1rem;
+		color: #2c3e50;
+		z-index: 2100;
 	}
+}
+
+/* Hide mobile toggle by default */
+#mobileSidebarToggle {
+	display: none;
 }
 
 /* ============================== */
@@ -1147,4 +1179,46 @@ body {
 
 .settings-page .card:nth-child(3) {
 	animation-delay: 0.3s;
+}
+
+/* Remove Bootstrap 5 invalid feedback icon from form fields */
+.form-control.is-invalid,
+.was-validated .form-control:invalid {
+	border-color: #dc3545 !important;
+	box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.1) !important;
+	background-image: none !important;
+	padding-right: 0.75rem !important;
+}
+
+/* Collapsible Sidebar Styles */
+#sidebar.collapsed {
+	min-width: 60px;
+	width: 60px;
+	transition: all 0.3s;
+}
+#sidebar.collapsed .sidebar-header h3,
+#sidebar.collapsed .sidebar-label {
+	display: none;
+}
+#sidebar.collapsed ul.components {
+	padding: 10px 0;
+}
+#sidebar.collapsed ul li a {
+	text-align: center;
+	padding: 10px 0;
+}
+#sidebar.collapsed ul li a i {
+	margin-right: 0;
+	font-size: 1.25rem;
+}
+
+/* Adjust content area when sidebar is collapsed */
+.wrapper {
+	transition: all 0.3s;
+}
+#sidebar + #content {
+	transition: margin-left 0.3s;
+}
+#sidebar.collapsed + #content {
+	margin-left: 60px;
 }

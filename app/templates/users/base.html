@@ -20,70 +20,88 @@
 		<link
 			rel="stylesheet"
 			href="{{ url_for('static', filename='css/styles.css') }}" />
+		<style>
+			@media (max-width: 768px) {
+				#sidebarCollapseBtn {
+					display: none !important;
+				}
+			}
+		</style>
 	</head>
 	<body>
 		<div class="wrapper">
-			<nav id="sidebar">
-				<div class="sidebar-header">
-					<h3>ICUConnect</h3>
-					<button
-						type="button"
-						id="sidebarCollapse"
-						class="btn btn-sm btn-outline-light">
-						<i class="fas fa-chevron-left"></i>
-					</button>
+			<nav id="sidebar" class="d-flex flex-column">
+				<div>
+					<div
+						class="sidebar-header d-flex align-items-center justify-content-between px-3 py-4">
+						<h3 class="mb-0">ICUConnect</h3>
+						<button
+							id="sidebarCollapseBtn"
+							class="btn btn-sm btn-outline-light ms-2"
+							type="button"
+							title="Collapse sidebar">
+							<i id="sidebarCollapseIcon" class="fas fa-chevron-left"></i>
+						</button>
+					</div>
+					<ul class="list-unstyled components">
+						<li
+							class="{% if request.endpoint == 'user.dashboard' %}active{% endif %}">
+							<a href="{{ url_for('user.dashboard') }}">
+								<i class="fas fa-tachometer-alt"></i>
+								<span class="sidebar-label">Dashboard</span>
+							</a>
+						</li>
+						<li
+							class="{% if request.endpoint == 'admission.admissions' %}active{% endif %}">
+							<a href="{{ url_for('admission.admissions') }}">
+								<i class="fas fa-procedures"></i>
+								<span class="sidebar-label">Admissions</span>
+							</a>
+						</li>
+						<li
+							class="{% if request.endpoint == 'discharge.discharges' %}active{% endif %}">
+							<a href="{{ url_for('discharge.discharges') }}">
+								<i class="fas fa-hospital-user"></i>
+								<span class="sidebar-label">Discharges</span>
+							</a>
+						</li>
+						<li
+							class="{% if request.endpoint == 'user.guide' %}active{% endif %}">
+							<a href="{{ url_for('user.guide') }}">
+								<i class="fas fa-book"></i>
+								<span class="sidebar-label">User Guide</span>
+							</a>
+						</li>
+						<li
+							class="{% if request.endpoint == 'user.settings' %}active{% endif %}">
+							<a href="{{ url_for('user.settings') }}">
+								<i class="fas fa-cog"></i>
+								<span class="sidebar-label">Settings</span>
+							</a>
+						</li>
+						<li>
+							<a href="{{ url_for('auth.logout') }}">
+								<i class="fas fa-sign-out-alt"></i>
+								<span class="sidebar-label">Logout</span>
+							</a>
+						</li>
+					</ul>
 				</div>
-				<ul class="list-unstyled components">
-					<li
-						class="{% if request.endpoint == 'user.dashboard' %}active{% endif %}">
-						<a href="{{ url_for('user.dashboard') }}">
-							<i class="fas fa-tachometer-alt"></i> Dashboard
-						</a>
-					</li>
-					<li
-						class="{% if request.endpoint == 'admission.admissions' %}active{% endif %}">
-						<a href="{{ url_for('admission.admissions') }}">
-							<i class="fas fa-procedures"></i> Admissions
-						</a>
-					</li>
-					<li
-						class="{% if request.endpoint == 'discharge.discharges' %}active{% endif %}">
-						<a href="{{ url_for('discharge.discharges') }}">
-							<i class="fas fa-hospital-user"></i> Discharges
-						</a>
-					</li>
-					<li
-						class="{% if request.endpoint == 'user.guide' %}active{% endif %}">
-						<a href="{{ url_for('user.guide') }}">
-							<i class="fas fa-book"></i> User Guide
-						</a>
-					</li>
-					<li
-						class="{% if request.endpoint == 'referral.referrals' %}active{% endif %}">
-						<a href="{{ url_for('referral.referrals') }}">
-							<i class="fas fa-exchange-alt"></i> Referrals
-						</a>
-					</li>
-					<li
-						class="{% if request.endpoint == 'user.settings' %}active{% endif %}">
-						<a href="{{ url_for('user.settings') }}">
-							<i class="fas fa-cog"></i> Settings
-						</a>
-					</li>
-					<li>
-						<a href="{{ url_for('auth.logout') }}">
-							<i class="fas fa-sign-out-alt"></i> Logout
-						</a>
-					</li>
-				</ul>
 				<div class="footer">
-					<p>Copyright &copy; 2025 ICUConnect</p>
+					<p>&copy; 2025 ICUConnect</p>
 				</div>
 			</nav>
 
 			<div id="content">
 				<nav class="navbar navbar-expand-lg navbar-light bg-light">
 					<div class="container-fluid">
+						<button
+							id="mobileSidebarToggle"
+							class="btn"
+							type="button"
+							aria-label="Toggle sidebar">
+							<i class="fas fa-bars"></i>
+						</button>
 						<div class="time-display ms-auto">
 							<h5 id="greeting">
 								Good {{ get_greeting() }}, {{ current_user.hospital.name }}
@@ -190,6 +208,56 @@
 			        var myModal = new bootstrap.Modal(document.getElementById('icuPredictionModal'));
 			        myModal.show();
 			    });
+			});
+
+			document.addEventListener('DOMContentLoaded', function () {
+				const sidebar = document.getElementById('sidebar');
+				const collapseBtn = document.getElementById('sidebarCollapseBtn');
+				const collapseIcon = document.getElementById('sidebarCollapseIcon');
+				collapseBtn.addEventListener('click', function () {
+					sidebar.classList.toggle('collapsed');
+					// Flip the chevron icon
+					collapseIcon.classList.toggle('fa-chevron-left');
+					collapseIcon.classList.toggle('fa-chevron-right');
+				});
+			});
+
+			// Responsive sidebar toggle for mobile
+			const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+			const sidebar = document.getElementById('sidebar');
+
+			mobileSidebarToggle && mobileSidebarToggle.addEventListener('click', function(e) {
+				e.preventDefault();
+				sidebar.classList.toggle('active');
+				// Optionally add an overlay
+				let overlay = document.getElementById('sidebarOverlay');
+				if (!overlay) {
+					overlay = document.createElement('div');
+					overlay.id = 'sidebarOverlay';
+					overlay.style.position = 'fixed';
+					overlay.style.top = 0;
+					overlay.style.left = 0;
+					overlay.style.width = '100vw';
+					overlay.style.height = '100vh';
+					overlay.style.background = 'rgba(0,0,0,0.3)';
+					overlay.style.zIndex = 1999;
+					document.body.appendChild(overlay);
+					overlay.addEventListener('click', function() {
+						sidebar.classList.remove('active');
+						document.body.removeChild(overlay);
+					});
+				} else {
+					document.body.removeChild(overlay);
+				}
+			});
+
+			// Hide sidebar and overlay on resize if desktop
+			window.addEventListener('resize', function() {
+				if (window.innerWidth > 768) {
+					sidebar.classList.remove('active');
+					const overlay = document.getElementById('sidebarOverlay');
+					if (overlay) document.body.removeChild(overlay);
+				}
 			});
 		</script>
 	</body>

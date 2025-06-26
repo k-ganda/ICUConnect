@@ -166,14 +166,14 @@
 				</div>
 			</div>
 
-			<!-- Active Referrals -->
-			<div class="card mt-3">
+			<!-- Patient Transfers -->
+			<div class="card">
 				<div class="card-header">
-					<h6 class="card-title mb-0">Active Referrals</h6>
+					<h6 class="card-title mb-0">Patient Transfers</h6>
 				</div>
 				<div class="card-body p-0">
-					<div id="activeReferralsList" class="list-group list-group-flush">
-						<div class="p-3 text-muted">No active referrals</div>
+					<div id="patientTransfersList" class="list-group list-group-flush">
+						<div class="p-3 text-muted">No active patient transfers</div>
 					</div>
 				</div>
 			</div>
@@ -246,6 +246,40 @@
 	</div>
 </div>
 
+<!-- Transfer Status Update Modal -->
+<div class="modal fade" id="transferStatusModal" tabindex="-1">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Update Patient Transfer Status</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div id="transferDetails"></div>
+				<div class="mt-3">
+					<label class="form-label">Arrival Notes (Optional):</label>
+					<textarea
+						class="form-control"
+						id="arrivalNotes"
+						rows="3"
+						placeholder="Add any notes about the patient's arrival and admission..."></textarea>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+					Cancel
+				</button>
+				<button type="button" class="btn btn-success" id="markAdmittedBtn">
+					<i class="fas fa-check"></i> Mark as Admitted
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
 <!-- Notification Sound -->
 <audio id="notificationSound" preload="auto">
 	<source
@@ -254,9 +288,12 @@
 </audio>
 
 {% endblock %} {% block scripts %}
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 <script>
 	// Global variables
+	let activeTransfers = [];
 	let activeReferrals = [];
+	let currentTransferId = null;
 	let currentReferralId = null;
 	let notificationInterval;
 	let countdownInterval;
@@ -266,6 +303,7 @@
 	let audioEnabled = false; // Track if user has enabled audio
 	let userSettings = null; // Store user notification settings
 	let audioMessageShown = false; // Track if we've shown the audio enable message
+	let firstReferralPoll = true;
 
 	document.addEventListener('DOMContentLoaded', function() {
 	    // Load user settings first
@@ -273,8 +311,8 @@
 	        // Initialize map
 	        initMap();
 
-	        // Initialize referral system
-	        initReferralSystem();
+	        // Initialize transfer system
+	        initTransferSystem();
 
 	        // Start checking for notifications
 	        startNotificationCheck();
@@ -532,13 +570,13 @@
 	    });
 	}
 
-	function initReferralSystem() {
-	    // Load any existing active referrals
-	    loadActiveReferrals();
+	function initTransferSystem() {
+	    // Load any existing active transfers
+	    loadActiveTransfers();
 	}
 
-	function loadActiveReferrals() {
-	    fetch('/referrals/api/pending-referrals')
+	function loadActiveTransfers() {
+	    fetch('/transfers/api/active-transfers')
 	        .then(response => {
 	            if (!response.ok) {
 	                throw new Error(`HTTP error! status: ${response.status}`);
@@ -551,24 +589,21 @@
 	        })
 	        .then(data => {
 	            if (data.success) {
-	                // Filter for this hospital as target
-	                activeReferrals = data.referrals.filter(
-	                    ref => ref.target_hospital_id == {{ hospital.id }}
-	                );
-	                updateActiveReferralsList();
+	                activeTransfers = data.transfers;
+	                updateActiveTransfersList();
 	            }
 	        })
 	        .catch(error => {
-	            console.error('Error loading referrals:', error);
+	            console.error('Error loading transfers:', error);
 	            console.error('This might indicate an authentication or server issue');
 	            // Don't show error to user for polling requests
 	        });
 	}
 
 	function startNotificationCheck() {
-	    // Check every 5 seconds
 	    notificationInterval = setInterval(() => {
-	        fetch('/referrals/api/pending-referrals')
+	        // Only poll for transfers now
+	        fetch('/transfers/api/active-transfers')
 	            .then(response => {
 	                if (!response.ok) {
 	                    throw new Error(`HTTP error! status: ${response.status}`);
@@ -576,29 +611,22 @@
 	                return response.json();
 	            })
 	            .then(data => {
-	                if (data.success && data.referrals.length > 0) {
-	                    // Filter for this hospital as target
-	                    const targetReferrals = data.referrals.filter(
-	                        ref => ref.target_hospital_id == {{ hospital.id }}
+	                if (data.success) {
+	                    const newTransfers = data.transfers.filter(tr =>
+	                        !activeTransfers.find(at => at.id === tr.id)
 	                    );
 
-	                    const newReferrals = targetReferrals.filter(ref =>
-	                        !activeReferrals.find(ar => ar.id === ref.id)
-	                    );
-
-	                    if (newReferrals.length > 0) {
-	                        showReferralModal(newReferrals[0]);
+	                    if (newTransfers.length > 0) {
 	                        showVisualNotification();
 	                        playNotificationSound();
 	                    }
 
-	                    activeReferrals = targetReferrals;
-	                    updateActiveReferralsList();
+	                    activeTransfers = data.transfers;
+	                    updateActiveTransfersList();
 	                }
 	            })
 	            .catch(error => {
-	                console.error('Error checking referrals:', error);
-	                // Don't show error to user for polling requests
+	                console.error('Error checking transfers:', error);
 	            });
 	    }, 5000);
 	}
@@ -748,15 +776,15 @@
 	        <div class="d-flex align-items-center">
 	            <i class="fas fa-bell me-2"></i>
 	            <div>
-	                <strong>NEW ICU REFERRAL REQUEST!</strong><br>
+	                <strong>NEW ICU TRANSFER REQUEST!</strong><br>
 	                <small>Click to view details</small>
 	            </div>
 	        </div>
 	    `;
 
 	    notification.addEventListener('click', () => {
-	        if (activeReferrals.length > 0) {
-	            showReferralModal(activeReferrals[0]);
+	        if (activeTransfers.length > 0) {
+	            showTransferModal(activeTransfers[0]);
 	        }
 	        notification.remove();
 	        currentNotification = null;
@@ -795,6 +823,42 @@
 	    new bootstrap.Modal(document.getElementById('referralResponseModal')).show();
 	}
 
+	function showTransferModal(transfer) {
+	    currentTransferId = transfer.id;
+
+	    document.getElementById('transferDetails').innerHTML = `
+	        <div class="row">
+	            <div class="col-md-6">
+	                <h6>Patient Information</h6>
+	                <p><strong>Name:</strong> ${transfer.patient_name}</p>
+	                <p><strong>Age:</strong> ${transfer.patient_age}</p>
+	                <p><strong>Gender:</strong> ${transfer.patient_gender}</p>
+	                ${transfer.primary_diagnosis ? `<p><strong>Primary Diagnosis:</strong> ${transfer.primary_diagnosis}</p>` : ''}
+	            </div>
+	            <div class="col-md-6">
+	                <h6>Transfer Details</h6>
+	                <p><strong>From:</strong> ${transfer.from_hospital}</p>
+	                <p><strong>To:</strong> ${transfer.to_hospital}</p>
+	                <p><strong>Status:</strong> <span class="badge bg-${transfer.status === 'En Route' ? 'warning' : 'success'}">${transfer.status}</span></p>
+	                <p><strong>Urgency:</strong> ${transfer.urgency_level}</p>
+	                ${transfer.special_requirements ? `<p><strong>Special Requirements:</strong> ${transfer.special_requirements}</p>` : ''}
+	            </div>
+	        </div>
+	        <div class="row mt-3">
+	            <div class="col-12">
+	                <h6>Timeline</h6>
+	                <p><strong>Transfer Initiated:</strong> ${transfer.transfer_initiated_at}</p>
+	                <p><strong>En Route Since:</strong> ${transfer.en_route_at}</p>
+	                ${transfer.admitted_at ? `<p><strong>Admitted At:</strong> ${transfer.admitted_at}</p>` : ''}
+	                ${transfer.time_since_en_route ? `<p><strong>Time En Route:</strong> ${transfer.time_since_en_route}</p>` : ''}
+	            </div>
+	        </div>
+	        ${transfer.transfer_notes ? `<div class="mt-3"><strong>Transfer Notes:</strong> ${transfer.transfer_notes}</div>` : ''}
+	    `;
+
+	    new bootstrap.Modal(document.getElementById('transferStatusModal')).show();
+	}
+
 	function startCountdown(seconds) {
 	    // Clear any existing countdown
 	    if (countdownInterval) clearInterval(countdownInterval);
@@ -820,13 +884,13 @@
 	            }
 	            // Close the modal
 	            closeReferralModal();
-	            // Remove expired referral from active list
-	            if (currentReferralId) {
-	                activeReferrals = activeReferrals.filter(ref => ref.id !== currentReferralId);
-	                updateActiveReferralsList();
+	            // Remove expired transfer from active list
+	            if (currentTransferId) {
+	                activeTransfers = activeTransfers.filter(tr => tr.id !== currentTransferId);
+	                updateActiveTransfersList();
 	                // Only auto-escalate if user has enabled it
 	                if (userSettings && userSettings.auto_escalate) {
-	                    checkAndEscalateReferral(currentReferralId);
+	                    checkAndEscalateTransfer(currentTransferId);
 	                }
 	            }
 	        }
@@ -834,36 +898,36 @@
 	    }, 1000);
 	}
 
-	function checkAndEscalateReferral(referralId) {
-	    fetch(`/referrals/api/check-referral-status/${referralId}`)
+	function checkAndEscalateTransfer(transferId) {
+	    fetch(`/transfers/api/check-transfer-status/${transferId}`)
 	        .then(response => response.json())
 	        .then(data => {
 	            if (data.success && data.status === 'Pending') {
 	                if (data.requesting_hospital_id == {{ hospital.id }}) {
-	                    escalateReferral(referralId);
+	                    escalateTransfer(transferId);
 	                }
 	            }
 	        })
-	        .catch(error => console.error('Error checking referral:', error));
+	        .catch(error => console.error('Error checking transfer:', error));
 	}
 
-	function escalateReferral(referralId) {
-	    fetch(`/referrals/api/escalate-referral/${referralId}`, {
+	function escalateTransfer(transferId) {
+	    fetch(`/transfers/api/escalate-transfer/${transferId}`, {
 	        method: 'POST'
 	    })
 	        .then(response => response.json())
 	        .then(data => {
 	            if (data.success) {
-	                showAlert(`Referral escalated to ${data.target_hospital}`, 'info');
-	                if (data.new_referral_id) {
-	                    startReferralTracking(data.new_referral_id, 120);
+	                showAlert(`Transfer escalated to ${data.target_hospital}`, 'info');
+	                if (data.new_transfer_id) {
+	                    startTransferTracking(data.new_transfer_id, 120);
 	                }
-	                loadActiveReferrals();
+	                loadActiveTransfers();
 	            } else {
 	                showAlert(data.message, 'error');
 	            }
 	        })
-	        .catch(error => console.error('Error escalating referral:', error));
+	        .catch(error => console.error('Error escalating transfer:', error));
 	}
 
 	function setupEventListeners() {
@@ -890,6 +954,13 @@
 	            rejectReferral(reason);
 	        } else {
 	            showAlert('Please provide a reason for rejection.', 'error');
+	        }
+	    });
+
+	    // Mark as admitted button
+	    document.getElementById('markAdmittedBtn').addEventListener('click', function() {
+	        if (currentTransferId) {
+	            markAsAdmitted(currentTransferId);
 	        }
 	    });
 	}
@@ -968,7 +1039,7 @@
 	                showAlert('Referral accepted successfully!', 'success');
 	                closeReferralModal();
 	                cleanupModalArtifacts();
-	                loadActiveReferrals();
+	                loadActiveTransfers();
 	            } else {
 	                showAlert(data.message, 'error');
 	            }
@@ -1002,7 +1073,7 @@
 	                closeReferralModal();
 	                closeRejectionModal();
 	                cleanupModalArtifacts();
-	                loadActiveReferrals();
+	                loadActiveTransfers();
 	            } else {
 	                showAlert(data.message, 'error');
 	            }
@@ -1010,6 +1081,41 @@
 	        .catch(error => {
 	            console.error('Error:', error);
 	            showAlert('Error rejecting referral', 'error');
+	        });
+	}
+
+	function markAsAdmitted(transferId) {
+	    const arrivalNotes = document.getElementById('arrivalNotes')?.value || '';
+
+	    fetch('/transfers/api/update-transfer-status', {
+	        method: 'POST',
+	        headers: {
+	            'Content-Type': 'application/json',
+	        },
+	        body: JSON.stringify({
+	            transfer_id: transferId,
+	            status: 'Admitted',
+	            arrival_notes: arrivalNotes
+	        })
+	    })
+	        .then(response => response.json())
+	        .then(data => {
+	            if (data.success) {
+	                showAlert('Patient marked as admitted successfully!', 'success');
+	                // Close the modal if it's open
+	                const modal = bootstrap.Modal.getInstance(document.getElementById('transferStatusModal'));
+	                if (modal) {
+	                    modal.hide();
+	                }
+	                cleanupModalArtifacts();
+	                loadActiveTransfers();
+	            } else {
+	                showAlert(data.message, 'error');
+	            }
+	        })
+	        .catch(error => {
+	            console.error('Error:', error);
+	            showAlert('Error updating transfer status', 'error');
 	        });
 	}
 
@@ -1023,7 +1129,8 @@
 	    document.body.style.overflow = '';
 	    document.body.style.paddingRight = '';
 
-	    // Reset current referral ID
+	    // Reset current IDs
+	    currentTransferId = null;
 	    currentReferralId = null;
 
 	    console.log('Modal artifacts cleaned up');
@@ -1073,35 +1180,56 @@
 	    document.getElementById('selectedHospitalDisplay').style.display = 'none';
 	}
 
-	function updateActiveReferralsList() {
-	    const container = document.getElementById('activeReferralsList');
+	function updateActiveTransfersList() {
+	    const container = document.getElementById('patientTransfersList');
 	    if (!container) return;
 
 	    container.innerHTML = '';
 
-	    if (activeReferrals.length === 0) {
-	        container.innerHTML = '<div class="p-3 text-muted">No active referrals</div>';
+	    if (activeTransfers.length === 0) {
+	        container.innerHTML = '<div class="p-3 text-muted">No active patient transfers</div>';
 	        return;
 	    }
 
-	    activeReferrals.forEach(referral => {
+	    activeTransfers.forEach(transfer => {
 	        const item = document.createElement('div');
 	        item.className = 'list-group-item';
+
+	        const statusBadge = transfer.status === 'En Route' ?
+	            '<span class="badge bg-warning">En Route</span>' :
+	            '<span class="badge bg-success">Admitted</span>';
+
+	        const actionButton = transfer.status === 'En Route' && transfer.is_receiving ?
+	            `<button class="btn btn-sm btn-success" onclick="markAsAdmitted(${transfer.id})">
+	                <i class="fas fa-check"></i> Mark Admitted
+	            </button>` : '';
+
 	        item.innerHTML = `
 	            <div class="d-flex justify-content-between align-items-start">
-	                <div>
-	                    <h6 class="mb-1">Patient (${referral.patient_age} years, ${referral.patient_gender})</h6>
-	                    <small class="text-muted">${referral.requesting_hospital}</small>
+	                <div class="flex-grow-1">
+	                    <h6 class="mb-1">${transfer.patient_name} (${transfer.patient_age} years, ${transfer.patient_gender})</h6>
+	                    <small class="text-muted">
+	                        <strong>From:</strong> ${transfer.from_hospital}
+	                        <strong>To:</strong> ${transfer.to_hospital}
+	                    </small>
 	                    <br>
-	                    <small class="text-muted">${referral.reason}</small>
+	                    <small class="text-muted">
+	                        <strong>Diagnosis:</strong> ${transfer.primary_diagnosis || 'Not specified'}
+	                    </small>
+	                    <br>
+	                    <small class="text-muted">
+	                        <strong>Urgency:</strong> ${transfer.urgency_level}
+	                    </small>
 	                </div>
-	                <div class="text-end">
-	                    <span class="badge bg-warning">${Math.floor(referral.time_remaining)}s</span>
+	                <div class="text-end ms-3">
+	                    ${statusBadge}
 	                    <br>
-	                    <small class="text-muted">${referral.urgency}</small>
+	                    <small class="text-muted">${transfer.transfer_initiated_at}</small>
+	                    ${actionButton}
 	                </div>
 	            </div>
 	        `;
+
 	        container.appendChild(item);
 	    });
 	}
@@ -1155,6 +1283,19 @@
 	        }
 	    });
 	}
+
+	// --- SOCKET.IO REAL-TIME REFERRALS ---
+	const socket = io();
+	socket.on('connect', function() {
+	    console.log('Connected to WebSocket server');
+	});
+	socket.on('new_referral', function(referral) {
+	    if (referral.target_hospital_id == {{ hospital.id }}) {
+	        showReferralModal(referral);
+	        showVisualNotification();
+	        playNotificationSound();
+	    }
+	});
 </script>
 
 {% endblock %}

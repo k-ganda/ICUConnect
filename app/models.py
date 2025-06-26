@@ -314,6 +314,82 @@ class ReferralResponse(db.Model):
     # Relationships
     referral_request = db.relationship('ReferralRequest', back_populates='responses')
     responding_hospital = db.relationship('Hospital')
+    
+    def __repr__(self):
+        return f"<ReferralResponse(id={self.id}, type={self.response_type})>"
+
+class PatientTransfer(db.Model):
+    """Patient transfer tracking between hospitals"""
+    __tablename__ = 'patient_transfers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    referral_request_id = db.Column(db.Integer, db.ForeignKey('referral_requests.id'), nullable=False)
+    
+    # Transfer details
+    from_hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    to_hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
+    
+    # Patient information
+    patient_name = db.Column(db.String(100), nullable=False)
+    patient_age = db.Column(db.Integer)
+    patient_gender = db.Column(db.String(10))
+    primary_diagnosis = db.Column(db.String(255))
+    urgency_level = db.Column(db.String(20), default='Medium')  # High/Medium/Low
+    special_requirements = db.Column(db.Text)
+    
+    # Transfer status
+    status = db.Column(db.String(20), default='En Route')  # 'En Route' or 'Admitted'
+    
+    # Timestamps
+    transfer_initiated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    en_route_at = db.Column(db.DateTime, default=datetime.utcnow)
+    admitted_at = db.Column(db.DateTime)
+    
+    # Contact information
+    contact_name = db.Column(db.String(100))
+    contact_phone = db.Column(db.String(20))
+    contact_email = db.Column(db.String(120))
+    
+    # Notes and updates
+    transfer_notes = db.Column(db.Text)
+    arrival_notes = db.Column(db.Text)
+    
+    # Relationships
+    referral_request = db.relationship('ReferralRequest', backref='transfers')
+    from_hospital = db.relationship('Hospital', foreign_keys=[from_hospital_id])
+    to_hospital = db.relationship('Hospital', foreign_keys=[to_hospital_id])
+    
+    @property
+    def local_transfer_initiated_at(self):
+        """Get transfer initiated time in local timezone"""
+        return to_local_time(self.transfer_initiated_at)
+    
+    @property
+    def local_en_route_at(self):
+        """Get en route time in local timezone"""
+        return to_local_time(self.en_route_at)
+    
+    @property
+    def local_admitted_at(self):
+        """Get admitted time in local timezone"""
+        return to_local_time(self.admitted_at) if self.admitted_at else None
+    
+    @property
+    def time_since_en_route(self):
+        """Get time since patient went en route"""
+        if self.status == 'En Route':
+            return datetime.utcnow() - self.en_route_at
+        return None
+    
+    @property
+    def transfer_duration(self):
+        """Get total transfer duration if completed"""
+        if self.admitted_at:
+            return self.admitted_at - self.transfer_initiated_at
+        return None
+    
+    def __repr__(self):
+        return f"<PatientTransfer(id={self.id}, status={self.status}, patient={self.patient_name})>"
 
 class HospitalContact(db.Model):
     """Contact information for hospitals"""

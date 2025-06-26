@@ -16,14 +16,15 @@ def discharges():
     today = now.date()
     yesterday = today - timedelta(days=1)
     
-    # Get recent discharges (last 7 days)
-    recent_discharges = Discharge.query.filter_by(hospital_id=hospital.id)\
-        .order_by(Discharge.discharge_time.desc())\
-        .limit(10)\
-        .all()
+    # Pagination for recent discharges
+    page = request.args.get('page', 1, type=int)
+    per_page = 6
+    base_query = Discharge.query.filter_by(hospital_id=hospital.id).order_by(Discharge.discharge_time.desc())
+    total_discharges = base_query.count()
+    total_pages = (total_discharges + per_page - 1) // per_page
+    recent_discharges = base_query.offset((page - 1) * per_page).limit(per_page).all()
     
-    discharges = Discharge.query.filter_by(hospital_id=hospital.id)\
-        .order_by(Discharge.discharge_time.desc()).all()
+    discharges = base_query.all()
     
     discharges_by_date = {}
     for discharge in discharges:
@@ -40,7 +41,10 @@ def discharges():
                          discharges_by_date=discharges_by_date,
                          today_discharges_count=today_count,
                          today=today,
-                         yesterday=yesterday)
+                         yesterday=yesterday,
+                         page=page,
+                         total_pages=total_pages,
+                         total_discharges=total_discharges)
 
 @discharge_bp.route('/api/current-patients')
 @login_required

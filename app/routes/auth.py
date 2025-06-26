@@ -15,28 +15,40 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        
-        # Try ADMIN first
+
+        errors = {}
+
         admin = Admin.query.filter_by(email=email).first()
-        if admin and admin.check_password(password):
+        user = User.query.filter_by(email=email).first()
+
+        if not admin and not user:
+            errors['email'] = "Email does not exist"
+        else:
+            if admin:
+                if not admin.check_password(password):
+                    errors['password'] = "Incorrect password"
+            elif user:
+                if not user.is_approved:
+                    errors['email'] = "Your account is pending approval"
+                elif not user.check_password(password):
+                    errors['password'] = "Incorrect password"
+
+        if errors:
+            # Render the login template with errors and keep email filled in
+            return render_template('auth/login.html', errors=errors, email=email)
+
+        # Login successful, redirect accordingly
+        if admin:
             login_user(admin)
             flash('Admin login successful!', 'success')
-            return redirect(url_for('admin.dashboard'))  # Explicit admin route
-        
-        # Then try USER
-        user = User.query.filter_by(email=email).first()
-        if user:
-            if not user.is_approved:
-                flash('Your account is pending approval', 'warning')
-                return redirect(url_for('auth.login'))
-            if user.check_password(password):
-                login_user(user)
-                flash('Login successful!', 'success')
-                return redirect(url_for('user.dashboard'))  # Explicit user route
-        
-        flash('Invalid credentials or unapproved account', 'danger')
-    
-    return render_template('auth/login.html')
+            return redirect(url_for('admin.dashboard'))
+        else:
+            login_user(user)
+            flash('Login successful!', 'success')
+            return redirect(url_for('user.dashboard'))
+
+    # GET request — show login form empty
+    return render_template('auth/login.html', errors=None, email='')
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():

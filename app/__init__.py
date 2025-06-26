@@ -5,9 +5,11 @@ from flask_migrate import Migrate
 from datetime import datetime
 import os
 from app.utils import get_current_local_time, to_local_time
+from flask_socketio import SocketIO
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+socketio = SocketIO()
 
 def create_app():
     app = Flask(__name__)
@@ -30,6 +32,7 @@ def create_app():
     migrate = Migrate(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    socketio.init_app(app, cors_allowed_origins="*")
 
     # Add teardown appcontext
     @app.teardown_appcontext
@@ -56,6 +59,7 @@ def create_app():
         from app.routes.discharge_routes import discharge_bp
         from app.routes.prediction_routes import prediction_bp
         from app.routes.referral_routes import referral_bp
+        from app.routes.transfer_routes import transfer_bp
         
         app.register_blueprint(main_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -65,6 +69,7 @@ def create_app():
         app.register_blueprint(discharge_bp, url_prefix='/discharges')
         app.register_blueprint(prediction_bp, url_prefix='/api')
         app.register_blueprint(referral_bp, url_prefix='/referrals')
+        app.register_blueprint(transfer_bp, url_prefix='/transfers')
         
         # Global context processor for all templates
         @app.context_processor
@@ -85,7 +90,7 @@ def create_app():
         # Initialize database
         _initialize_database(app)
 
-    return app
+    return app, socketio
 
 def _initialize_database(app, reset=False):
     """Initialize or update the PostgreSQL database."""

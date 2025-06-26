@@ -2,9 +2,11 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from app import db
-from app.models import Hospital, Admission, ReferralRequest, ReferralResponse, HospitalContact
+from app.models import Hospital, Admission, ReferralRequest, ReferralResponse, HospitalContact, PatientTransfer
 from app.utils import get_current_local_time, to_utc_time
 import json
+from flask_socketio import emit
+from app import socketio
 
 referral_bp = Blueprint('referral', __name__)
 
@@ -113,6 +115,21 @@ def initiate_referral():
         
         print(f"Referral created successfully with ID: {referral.id}")
         
+        referral_data = {
+            'id': referral.id,
+            'target_hospital_id': referral.target_hospital_id,
+            'patient_age': referral.patient_age,
+            'patient_gender': referral.patient_gender,
+            'primary_diagnosis': referral.primary_diagnosis,
+            'requesting_hospital': referral.requesting_hospital.name,
+            'urgency': referral.urgency_level,
+            'reason': referral.reason_for_referral,
+            'current_treatment': referral.current_treatment,
+            'special_requirements': referral.special_requirements,
+            'time_remaining': 120
+        }
+        socketio.emit('new_referral', referral_data)
+        
         return jsonify({
             'success': True,
             'referral_id': referral.id,
@@ -165,6 +182,26 @@ def respond_to_referral():
         if response_type == 'accept':
             referral.status = 'Accepted'
             referral.responded_at = datetime.utcnow()
+            
+            # Create patient transfer
+            transfer = PatientTransfer(
+                referral_request_id=referral_id,
+                from_hospital_id=referral.requesting_hospital_id,
+                to_hospital_id=referral.target_hospital_id,
+                patient_name=data.get('patient_name', 'Unknown Patient'),
+                patient_age=referral.patient_age,
+                patient_gender=referral.patient_gender,
+                primary_diagnosis=referral.primary_diagnosis,
+                urgency_level=referral.urgency_level,
+                special_requirements=referral.special_requirements,
+                status='En Route',
+                contact_name=data.get('contact_name', ''),
+                contact_phone=data.get('contact_phone', ''),
+                contact_email=data.get('contact_email', ''),
+                transfer_notes=data.get('transfer_notes', '')
+            )
+            db.session.add(transfer)
+            
         elif response_type == 'reject':
             referral.status = 'Rejected'
             referral.responded_at = datetime.utcnow()
