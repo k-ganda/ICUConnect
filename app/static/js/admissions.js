@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Track reserved bed for transfer
 	let reservedBedForTransfer = null;
+	let reservedBedToSelect = null;
 
 	window.setReservedBedToSelect = function (bedNumber) {
 		console.log(

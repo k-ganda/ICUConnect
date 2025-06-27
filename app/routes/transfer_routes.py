@@ -102,25 +102,7 @@ def update_transfer_status():
         transfer.admitted_at = datetime.utcnow()
         transfer.arrival_notes = arrival_notes
 
-        # Create an Admission record for the patient
-        # Find the reserved bed (occupied, in this hospital, not already assigned to an active admission)
-        bed = Bed.query.filter_by(
-            hospital_id=transfer.to_hospital_id,
-            is_occupied=True
-        ).outerjoin(Admission, (Admission.bed_id == Bed.id) & (Admission.status == 'Active')).filter(Admission.id == None).first()
-        admission = Admission(
-            hospital_id=transfer.to_hospital_id,
-            patient_name=transfer.patient_name,
-            bed_id=bed.id if bed else None,
-            doctor='',  # You may want to update this with actual doctor info
-            reason=transfer.primary_diagnosis or '',
-            priority=transfer.urgency_level or 'Medium',
-            age=transfer.patient_age,
-            gender=transfer.patient_gender,
-            admission_time=transfer.admitted_at,
-            status='Active'
-        )
-        db.session.add(admission)
+        
         db.session.commit()
         
         # Send notification to referring hospital
