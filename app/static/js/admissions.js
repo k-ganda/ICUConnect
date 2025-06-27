@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
+	console.log('[admissions.js] DOMContentLoaded');
 	const newAdmissionBtn = document.getElementById('newAdmissionBtn');
 	const closeFormBtn = document.getElementById('closeFormBtn');
 	const admissionForm = document.getElementById('admissionForm');
@@ -20,9 +21,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Open form
 	if (newAdmissionBtn && admissionForm && formOverlay) {
 		newAdmissionBtn.addEventListener('click', function () {
+			console.log('[admissions.js] New Admission button clicked');
 			admissionForm.classList.add('show');
 			formOverlay.style.display = 'block';
 			document.body.style.overflow = 'hidden';
+			console.log('[admissions.js] Slide-in form opened');
 			updateAvailableBeds();
 		});
 	}
@@ -37,7 +40,74 @@ document.addEventListener('DOMContentLoaded', function () {
 		admissionForm.classList.remove('show');
 		formOverlay.style.display = 'none';
 		document.body.style.overflow = 'auto';
+		console.log('[admissions.js] Slide-in form closed');
 	}
+
+	// Track reserved bed for transfer
+	let reservedBedForTransfer = null;
+
+	window.setReservedBedToSelect = function (bedNumber) {
+		console.log(
+			'[admissions.js] setReservedBedToSelect called with',
+			bedNumber
+		);
+		reservedBedToSelect = bedNumber;
+		reservedBedForTransfer = bedNumber;
+	};
+
+	window.updateAvailableBeds = function (reservedBedNumber) {
+		console.log(
+			'[admissions.js] updateAvailableBeds called',
+			reservedBedNumber
+		);
+		const bedSelect = document.getElementById('bedSelect');
+		const countSpan = document.getElementById('availableBedsCount');
+		if (!bedSelect || !countSpan) return;
+		// Show loading state
+		bedSelect.disabled = true;
+		countSpan.textContent = 'loading...';
+		let url = '/admissions/api/available-beds';
+		if (reservedBedNumber) {
+			url += `?reserved_bed_number=${reservedBedNumber}`;
+		}
+		fetch(url)
+			.then((response) => {
+				if (!response.ok) throw new Error('Network error');
+				return response.json();
+			})
+			.then((data) => {
+				// Clear existing options except the default
+				bedSelect.innerHTML = '<option value="">Select available bed</option>';
+				if (data.availableBeds.length === 0) {
+					bedSelect.innerHTML =
+						'<option value="" disabled>No beds available</option>';
+					countSpan.textContent = '0';
+					return;
+				}
+				// Add bed options
+				data.availableBeds.forEach((bed) => {
+					const option = new Option(`Bed ${bed.number}`, bed.number);
+					bedSelect.add(option);
+				});
+				countSpan.textContent = data.count;
+				bedSelect.disabled = false;
+				// If a reserved bed is set, select it
+				if (reservedBedToSelect) {
+					console.log(
+						'[admissions.js] Selecting reserved bed',
+						reservedBedToSelect
+					);
+					bedSelect.value = reservedBedToSelect;
+					reservedBedToSelect = null; // Reset after use
+				}
+			})
+			.catch((error) => {
+				console.error('Error fetching beds:', error);
+				bedSelect.innerHTML =
+					'<option value="" disabled>Error loading beds</option>';
+				countSpan.textContent = 'error';
+			});
+	};
 
 	// Form submission
 	if (admissionFormData) {
@@ -54,6 +124,14 @@ document.addEventListener('DOMContentLoaded', function () {
 				priority: this.querySelector('input[name="priority"]:checked')?.value,
 			};
 
+			// If reservedBedForTransfer is set and matches the selected bed, include it
+			if (
+				reservedBedForTransfer &&
+				parseInt(this.bed_number.value) === parseInt(reservedBedForTransfer)
+			) {
+				formData.reserved_bed_number = reservedBedForTransfer;
+			}
+
 			fetch('/admissions/api/admit', {
 				method: 'POST',
 				headers: {
@@ -67,7 +145,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
 					if (response.ok && data.success) {
 						closeForm();
-						window.location.reload();
+						// If this was a transfer admission, update the transfer status
+						const url = new URL(window.location);
+						const transferId = url.searchParams.get('transfer_id');
+						if (transferId) {
+							fetch('/transfers/api/update-transfer-status', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									transfer_id: transferId,
+									status: 'Admitted',
+									arrival_notes: '',
+								}),
+							}).then(() => {
+								url.searchParams.delete('transfer_id');
+								window.location.replace(url.toString());
+							});
+						} else {
+							url.searchParams.delete('transfer_id');
+							window.location.replace(url.toString());
+						}
 					} else {
 						alert('Error: ' + (data.message || 'Unknown error occurred'));
 					}
@@ -78,4 +175,15 @@ document.addEventListener('DOMContentLoaded', function () {
 				});
 		});
 	}
+
+	window.openAdmissionForm = function () {
+		console.log('[admissions.js] openAdmissionForm called');
+		const admissionForm = document.getElementById('admissionForm');
+		const formOverlay = document.getElementById('formOverlay');
+		admissionForm.classList.add('show');
+		formOverlay.style.display = 'block';
+		document.body.style.overflow = 'hidden';
+		console.log('[admissions.js] Slide-in form opened (openAdmissionForm)');
+		if (typeof updateAvailableBeds === 'function') updateAvailableBeds();
+	};
 });

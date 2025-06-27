@@ -124,30 +124,45 @@ def calculate_percentage_change(current_value, previous_value):
 @login_required
 def available_beds():
     hospital = Hospital.query.get(current_user.hospital_id)
-    available_beds = Bed.query.filter_by(
-        hospital_id=hospital.id, 
-        is_occupied=False
-    ).order_by(Bed.bed_number.asc()).all()  # Sort by bed number
+    reserved_bed_number = request.args.get('reserved_bed_number', type=int)
+    if reserved_bed_number:
+        beds = Bed.query.filter(
+            Bed.hospital_id == hospital.id,
+            ((Bed.is_occupied == False) | (Bed.bed_number == reserved_bed_number))
+        ).order_by(Bed.bed_number.asc()).all()
+    else:
+        beds = Bed.query.filter_by(
+            hospital_id=hospital.id, 
+            is_occupied=False
+        ).order_by(Bed.bed_number.asc()).all()
 
     return jsonify({
         'availableBeds': [{
             'number': bed.bed_number  # Match frontend expectation
-        } for bed in available_beds],
-        'count': len(available_beds)
+        } for bed in beds],
+        'count': len(beds)
     })
-
+    
 @admission_bp.route('/api/admit', methods=['POST'])
 @login_required
 def admit_patient():
     try:
         hospital = Hospital.query.get(current_user.hospital_id)
         bed_number = request.json['bed_number']
-        
-        bed = Bed.query.filter_by(
-            hospital_id=hospital.id,
-            bed_number=bed_number,
-            is_occupied=False
-        ).first()
+        reserved_bed_number = request.json.get('reserved_bed_number')
+
+        # If reserved_bed_number is provided and matches, allow even if occupied
+        if reserved_bed_number and int(reserved_bed_number) == int(bed_number):
+            bed = Bed.query.filter_by(
+                hospital_id=hospital.id,
+                bed_number=bed_number
+            ).first()
+        else:
+            bed = Bed.query.filter_by(
+                hospital_id=hospital.id,
+                bed_number=bed_number,
+                is_occupied=False
+            ).first()
 
         if not bed:
             return jsonify({

@@ -90,7 +90,7 @@ def create_app():
         # Initialize database
         _initialize_database(app)
 
-    return app, socketio
+    return app
 
 def _initialize_database(app, reset=False):
     """Initialize or update the PostgreSQL database."""

@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from app import db
-from app.models import Hospital, PatientTransfer, ReferralRequest, UserSettings
+from app.models import Hospital, PatientTransfer, ReferralRequest, UserSettings, Admission, Bed
 from app.utils import get_current_local_time, to_utc_time
 import json
 
@@ -101,7 +101,26 @@ def update_transfer_status():
         transfer.status = new_status
         transfer.admitted_at = datetime.utcnow()
         transfer.arrival_notes = arrival_notes
-        
+
+        # Create an Admission record for the patient
+        # Find the reserved bed (occupied, in this hospital, not already assigned to an active admission)
+        bed = Bed.query.filter_by(
+            hospital_id=transfer.to_hospital_id,
+            is_occupied=True
+        ).outerjoin(Admission, (Admission.bed_id == Bed.id) & (Admission.status == 'Active')).filter(Admission.id == None).first()
+        admission = Admission(
+            hospital_id=transfer.to_hospital_id,
+            patient_name=transfer.patient_name,
+            bed_id=bed.id if bed else None,
+            doctor='',  # You may want to update this with actual doctor info
+            reason=transfer.primary_diagnosis or '',
+            priority=transfer.urgency_level or 'Medium',
+            age=transfer.patient_age,
+            gender=transfer.patient_gender,
+            admission_time=transfer.admitted_at,
+            status='Active'
+        )
+        db.session.add(admission)
         db.session.commit()
         
         # Send notification to referring hospital
@@ -132,7 +151,7 @@ def active_transfers():
                 PatientTransfer.from_hospital_id == hospital_id,
                 PatientTransfer.to_hospital_id == hospital_id
             ),
-            PatientTransfer.status.in_(['En Route', 'Admitted'])
+            PatientTransfer.status == 'En Route'  # Only show en route
         ).order_by(PatientTransfer.transfer_initiated_at.desc()).all()
         
         transfers_data = []
@@ -190,6 +209,12 @@ def get_transfer(transfer_id):
                 'message': 'Unauthorized to view this transfer'
             }), 403
         
+        # Find the reserved bed (occupied, in this hospital, not already assigned to an active admission)
+        reserved_bed = Bed.query.filter_by(
+            hospital_id=transfer.to_hospital_id,
+            is_occupied=True
+        ).outerjoin(Admission, (Admission.bed_id == Bed.id) & (Admission.status == 'Active')).filter(Admission.id == None).first()
+
         transfer_data = {
             'id': transfer.id,
             'patient_name': transfer.patient_name,
@@ -212,7 +237,8 @@ def get_transfer(transfer_id):
             'contact_phone': transfer.contact_phone,
             'contact_email': transfer.contact_email,
             'transfer_notes': transfer.transfer_notes,
-            'arrival_notes': transfer.arrival_notes
+            'arrival_notes': transfer.arrival_notes,
+            'reserved_bed_number': reserved_bed.bed_number if reserved_bed else None
         }
         
         return jsonify({

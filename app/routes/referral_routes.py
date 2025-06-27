@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from app import db
-from app.models import Hospital, Admission, ReferralRequest, ReferralResponse, HospitalContact, PatientTransfer
+from app.models import Hospital, Admission, ReferralRequest, ReferralResponse, HospitalContact, PatientTransfer, Bed
 from app.utils import get_current_local_time, to_utc_time
 import json
 from flask_socketio import emit
@@ -168,21 +168,21 @@ def respond_to_referral():
                 'message': 'Referral request not found or already processed'
             }), 404
         
-        # Create response
-        response = ReferralResponse(
-            referral_request_id=referral_id,
-            responding_hospital_id=responding_hospital.id,
-            response_type=response_type,
-            response_message=response_message,
-            responder_name=current_user.name,
-            available_beds=responding_hospital.available_beds
-        )
-        
         # Update referral status
         if response_type == 'accept':
             referral.status = 'Accepted'
             referral.responded_at = datetime.utcnow()
-            
+
+            # Book a bed: find an available bed and mark it as occupied
+            available_bed = Bed.query.filter_by(
+                hospital_id=referral.target_hospital_id,
+                is_occupied=False
+            ).first()
+            if available_bed:
+                available_bed.is_occupied = True  # Reserve the bed
+            else:
+                return jsonify({'success': False, 'message': 'No available beds to book!'}), 400
+
             # Create patient transfer
             transfer = PatientTransfer(
                 referral_request_id=referral_id,
@@ -201,11 +201,18 @@ def respond_to_referral():
                 transfer_notes=data.get('transfer_notes', '')
             )
             db.session.add(transfer)
-            
         elif response_type == 'reject':
             referral.status = 'Rejected'
             referral.responded_at = datetime.utcnow()
-        
+        # Always create a ReferralResponse object
+        response = ReferralResponse(
+            referral_request_id=referral_id,
+            responding_hospital_id=responding_hospital.id,
+            response_type=response_type,
+            response_message=response_message,
+            responder_name=current_user.name,
+            available_beds=responding_hospital.available_beds
+        )
         db.session.add(response)
         db.session.commit()
         

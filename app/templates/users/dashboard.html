@@ -122,7 +122,8 @@
 								type="text"
 								class="form-control"
 								id="primaryDiagnosis"
-								placeholder="e.g., Severe Pneumonia" />
+								placeholder="e.g., Severe Pneumonia"
+								autocomplete="off" />
 						</div>
 
 						<!-- Reason for Referral -->
@@ -152,7 +153,7 @@
 								class="form-control"
 								id="specialRequirements"
 								rows="2"
-								placeholder="Equipment, specialists, or other needs..."></textarea>
+								placeholder="Equipment, specialists, Allergies..."></textarea>
 						</div>
 
 						<!-- Submit Button -->
@@ -246,40 +247,6 @@
 	</div>
 </div>
 
-<!-- Transfer Status Update Modal -->
-<div class="modal fade" id="transferStatusModal" tabindex="-1">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title">Update Patient Transfer Status</h5>
-				<button
-					type="button"
-					class="btn-close"
-					data-bs-dismiss="modal"></button>
-			</div>
-			<div class="modal-body">
-				<div id="transferDetails"></div>
-				<div class="mt-3">
-					<label class="form-label">Arrival Notes (Optional):</label>
-					<textarea
-						class="form-control"
-						id="arrivalNotes"
-						rows="3"
-						placeholder="Add any notes about the patient's arrival and admission..."></textarea>
-				</div>
-			</div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-					Cancel
-				</button>
-				<button type="button" class="btn btn-success" id="markAdmittedBtn">
-					<i class="fas fa-check"></i> Mark as Admitted
-				</button>
-			</div>
-		</div>
-	</div>
-</div>
-
 <!-- Notification Sound -->
 <audio id="notificationSound" preload="auto">
 	<source
@@ -313,9 +280,6 @@
 
 	        // Initialize transfer system
 	        initTransferSystem();
-
-	        // Start checking for notifications
-	        startNotificationCheck();
 
 	        // Setup event listeners
 	        setupEventListeners();
@@ -600,159 +564,7 @@
 	        });
 	}
 
-	function startNotificationCheck() {
-	    notificationInterval = setInterval(() => {
-	        // Only poll for transfers now
-	        fetch('/transfers/api/active-transfers')
-	            .then(response => {
-	                if (!response.ok) {
-	                    throw new Error(`HTTP error! status: ${response.status}`);
-	                }
-	                return response.json();
-	            })
-	            .then(data => {
-	                if (data.success) {
-	                    const newTransfers = data.transfers.filter(tr =>
-	                        !activeTransfers.find(at => at.id === tr.id)
-	                    );
-
-	                    if (newTransfers.length > 0) {
-	                        showVisualNotification();
-	                        playNotificationSound();
-	                    }
-
-	                    activeTransfers = data.transfers;
-	                    updateActiveTransfersList();
-	                }
-	            })
-	            .catch(error => {
-	                console.error('Error checking transfers:', error);
-	            });
-	    }, 5000);
-	}
-
-	function playNotificationSound() {
-	    // Check if audio notifications are enabled in user settings
-	    if (!userSettings || !userSettings.audio_notifications) {
-	        console.log('Audio notifications disabled in user settings');
-	        return;
-	    }
-
-	    const audio = document.getElementById('notificationSound');
-	    if (!audio) {
-	        console.error('Audio element not found');
-	        return;
-	    }
-
-	    if (isSoundPlaying) {
-	        console.log('Sound already playing');
-	        return;
-	    }
-
-	    // Check if audio is enabled (user has interacted with the page)
-	    if (!audioEnabled) {
-	        console.log('Audio not enabled - user needs to interact with page first');
-	        // Try to enable audio by attempting to play
-	        audio.play().then(() => {
-	            audio.pause();
-	            audio.currentTime = 0;
-	            audioEnabled = true;
-	            console.log('Audio enabled successfully');
-	            // Save the audio enabled status to database
-	            saveAudioEnabledStatus(true);
-	            // Now try to play the notification sound
-	            playNotificationSound();
-	        }).catch(e => {
-	            console.log('Audio not enabled yet:', e);
-	            // Only show the message once per session
-	            if (!audioMessageShown) {
-	                showAlert('Click anywhere on the page to enable notification sounds', 'info');
-	                audioMessageShown = true;
-	            }
-	        });
-	        return;
-	    }
-
-	    isSoundPlaying = true;
-	    console.log('Starting notification sound');
-
-	    // Set volume from user settings
-	    audio.volume = userSettings.audio_volume || 0.7;
-
-	    // Function to restart the sound when it ends
-	    const restartSound = () => {
-	        if (isSoundPlaying) {
-	            console.log('Restarting notification sound');
-	            audio.currentTime = 0;
-	            audio.play().catch(e => {
-	                console.log('Audio restart failed:', e);
-	                isSoundPlaying = false;
-	            });
-	        }
-	    };
-
-	    // Store the restart function reference for later removal
-	    audio.restartSound = restartSound;
-
-	    // Listen for when the sound ends to restart it
-	    audio.addEventListener('ended', restartSound);
-
-	    // Start playing
-	    audio.currentTime = 0;
-	    audio.play().catch(e => {
-	        console.log('Audio play failed:', e);
-	        isSoundPlaying = false;
-	        // If autoplay is blocked, try alternative method
-	        if (e.name === 'NotAllowedError') {
-	            console.log('Trying alternative sound method...');
-	            playSoundAlternative();
-	        }
-	    });
-	}
-
-	function playSoundAlternative() {
-	    // Alternative method: create a new audio element
-	    const audioUrl = "{{ url_for('static', filename='sounds/notificationsound.mp3') }}";
-	    const audio = new Audio(audioUrl);
-
-	    audio.play().then(() => {
-	        console.log('Alternative sound method worked!');
-	        isSoundPlaying = true;
-
-	        // Set up continuous playing
-	        audio.addEventListener('ended', () => {
-	            if (isSoundPlaying) {
-	                audio.currentTime = 0;
-	                audio.play().catch(e => {
-	                    console.log('Alternative restart failed:', e);
-	                    isSoundPlaying = false;
-	                });
-	            }
-	        });
-	    }).catch(e => {
-	        console.log('Alternative method also failed:', e);
-	        showAlert('Please enable sound in your browser settings', 'warning');
-	    });
-	}
-
-	function stopNotificationSound() {
-	    const audio = document.getElementById('notificationSound');
-	    if (audio) {
-	        isSoundPlaying = false;
-	        audio.pause();
-	        audio.currentTime = 0;
-
-	        // Remove the restart function if it exists
-	        if (audio.restartSound) {
-	            audio.removeEventListener('ended', audio.restartSound);
-	            audio.restartSound = null;
-	        }
-
-	        console.log('Notification sound stopped');
-	    }
-	}
-
-	function showVisualNotification() {
+	function showVisualNotification(referral) {
 	    // Check if visual notifications are enabled in user settings
 	    if (!userSettings || !userSettings.visual_notifications) {
 	        console.log('Visual notifications disabled in user settings');
@@ -783,9 +595,7 @@
 	    `;
 
 	    notification.addEventListener('click', () => {
-	        if (activeTransfers.length > 0) {
-	            showTransferModal(activeTransfers[0]);
-	        }
+	        showReferralModal(referral); // Only open the modal when the notification is clicked
 	        notification.remove();
 	        currentNotification = null;
 	    });
@@ -794,69 +604,37 @@
 	    currentNotification = notification;
 	}
 
-	function showReferralModal(referral) {
-	    if (referral.target_hospital_id != {{ hospital.id }}) return;
-
-	    currentReferralId = referral.id;
+	function showReferralModal(referralOrTransfer) {
+	    // Support both referral and transfer objects
+	    const isTransfer = referralOrTransfer.hasOwnProperty('status');
+	    const data = referralOrTransfer;
+	    if (isTransfer && data.to_hospital !== undefined && data.to_hospital != undefined && data.to_hospital == '{{ hospital.name }}') {
+	        currentTransferId = data.id;
+	    } else if (!isTransfer && data.target_hospital_id == {{ hospital.id }}) {
+	        currentReferralId = data.id;
+	    }
 
 	    document.getElementById('referralDetails').innerHTML = `
 	        <div class="row">
 	            <div class="col-md-6">
 	                <h6>Patient Information</h6>
-	                <p><strong>Age:</strong> ${referral.patient_age}</p>
-	                <p><strong>Gender:</strong> ${referral.patient_gender}</p>
-	                ${referral.primary_diagnosis ? `<p><strong>Primary Diagnosis:</strong> ${referral.primary_diagnosis}</p>` : ''}
+	                <p><strong>Age:</strong> ${data.patient_age}</p>
+	                <p><strong>Gender:</strong> ${data.patient_gender}</p>
+	                ${data.primary_diagnosis ? `<p><strong>Primary Diagnosis:</strong> ${data.primary_diagnosis}</p>` : ''}
 	            </div>
 	            <div class="col-md-6">
 	                <h6>Referral Details</h6>
-	                <p><strong>From:</strong> ${referral.requesting_hospital}</p>
-	                <p><strong>Urgency:</strong> ${referral.urgency}</p>
-	                <p><strong>Reason:</strong> ${referral.reason}</p>
-	                ${referral.current_treatment ? `<p><strong>Current Treatment:</strong> ${referral.current_treatment}</p>` : ''}
+	                <p><strong>From:</strong> ${isTransfer ? data.from_hospital : data.requesting_hospital}</p>
+	                <p><strong>Urgency:</strong> ${isTransfer ? data.urgency_level : data.urgency}</p>
+	                <p><strong>Reason:</strong> ${data.reason || ''}</p>
+	                ${data.current_treatment ? `<p><strong>Current Treatment:</strong> ${data.current_treatment}</p>` : ''}
 	            </div>
 	        </div>
-	        ${referral.special_requirements ?
-	            `<p><strong>Special Requirements:</strong> ${referral.special_requirements}</p>` : ''}
+	        ${data.special_requirements ? `<p><strong>Special Requirements:</strong> ${data.special_requirements}</p>` : ''}
 	    `;
 
-	    startCountdown(referral.time_remaining);
+	    startCountdown(data.time_remaining);
 	    new bootstrap.Modal(document.getElementById('referralResponseModal')).show();
-	}
-
-	function showTransferModal(transfer) {
-	    currentTransferId = transfer.id;
-
-	    document.getElementById('transferDetails').innerHTML = `
-	        <div class="row">
-	            <div class="col-md-6">
-	                <h6>Patient Information</h6>
-	                <p><strong>Name:</strong> ${transfer.patient_name}</p>
-	                <p><strong>Age:</strong> ${transfer.patient_age}</p>
-	                <p><strong>Gender:</strong> ${transfer.patient_gender}</p>
-	                ${transfer.primary_diagnosis ? `<p><strong>Primary Diagnosis:</strong> ${transfer.primary_diagnosis}</p>` : ''}
-	            </div>
-	            <div class="col-md-6">
-	                <h6>Transfer Details</h6>
-	                <p><strong>From:</strong> ${transfer.from_hospital}</p>
-	                <p><strong>To:</strong> ${transfer.to_hospital}</p>
-	                <p><strong>Status:</strong> <span class="badge bg-${transfer.status === 'En Route' ? 'warning' : 'success'}">${transfer.status}</span></p>
-	                <p><strong>Urgency:</strong> ${transfer.urgency_level}</p>
-	                ${transfer.special_requirements ? `<p><strong>Special Requirements:</strong> ${transfer.special_requirements}</p>` : ''}
-	            </div>
-	        </div>
-	        <div class="row mt-3">
-	            <div class="col-12">
-	                <h6>Timeline</h6>
-	                <p><strong>Transfer Initiated:</strong> ${transfer.transfer_initiated_at}</p>
-	                <p><strong>En Route Since:</strong> ${transfer.en_route_at}</p>
-	                ${transfer.admitted_at ? `<p><strong>Admitted At:</strong> ${transfer.admitted_at}</p>` : ''}
-	                ${transfer.time_since_en_route ? `<p><strong>Time En Route:</strong> ${transfer.time_since_en_route}</p>` : ''}
-	            </div>
-	        </div>
-	        ${transfer.transfer_notes ? `<div class="mt-3"><strong>Transfer Notes:</strong> ${transfer.transfer_notes}</div>` : ''}
-	    `;
-
-	    new bootstrap.Modal(document.getElementById('transferStatusModal')).show();
 	}
 
 	function startCountdown(seconds) {
@@ -1103,7 +881,7 @@
 	            if (data.success) {
 	                showAlert('Patient marked as admitted successfully!', 'success');
 	                // Close the modal if it's open
-	                const modal = bootstrap.Modal.getInstance(document.getElementById('transferStatusModal'));
+	                const modal = bootstrap.Modal.getInstance(document.getElementById('referralResponseModal'));
 	                if (modal) {
 	                    modal.hide();
 	                }
@@ -1186,28 +964,26 @@
 
 	    container.innerHTML = '';
 
-	    if (activeTransfers.length === 0) {
+	    const enRouteTransfers = activeTransfers.filter(tr => tr.status === 'En Route');
+	    if (enRouteTransfers.length === 0) {
 	        container.innerHTML = '<div class="p-3 text-muted">No active patient transfers</div>';
 	        return;
 	    }
 
-	    activeTransfers.forEach(transfer => {
+	    enRouteTransfers.forEach(transfer => {
 	        const item = document.createElement('div');
 	        item.className = 'list-group-item';
 
-	        const statusBadge = transfer.status === 'En Route' ?
-	            '<span class="badge bg-warning">En Route</span>' :
-	            '<span class="badge bg-success">Admitted</span>';
-
-	        const actionButton = transfer.status === 'En Route' && transfer.is_receiving ?
-	            `<button class="btn btn-sm btn-success" onclick="markAsAdmitted(${transfer.id})">
+	        const statusBadge = '<span class="badge bg-warning">En Route</span>';
+	        const actionButton = transfer.is_receiving ?
+	            `<a class="btn btn-sm btn-success" href="/admissions/admissions?transfer_id=${transfer.id}">
 	                <i class="fas fa-check"></i> Mark Admitted
-	            </button>` : '';
+	            </a>` : '';
 
 	        item.innerHTML = `
 	            <div class="d-flex justify-content-between align-items-start">
 	                <div class="flex-grow-1">
-	                    <h6 class="mb-1">${transfer.patient_name} (${transfer.patient_age} years, ${transfer.patient_gender})</h6>
+	                    <h6 class="mb-1">(${transfer.patient_age} years, ${transfer.patient_gender})</h6>
 	                    <small class="text-muted">
 	                        <strong>From:</strong> ${transfer.from_hospital}
 	                        <strong>To:</strong> ${transfer.to_hospital}
@@ -1224,7 +1000,9 @@
 	                <div class="text-end ms-3">
 	                    ${statusBadge}
 	                    <br>
-	                    <small class="text-muted">${transfer.transfer_initiated_at}</small>
+	                    <small class="text-muted">
+	                        <strong>Started:</strong> ${transfer.transfer_initiated_at}
+	                    </small>
 	                    ${actionButton}
 	                </div>
 	            </div>
@@ -1291,11 +1069,106 @@
 	});
 	socket.on('new_referral', function(referral) {
 	    if (referral.target_hospital_id == {{ hospital.id }}) {
-	        showReferralModal(referral);
-	        showVisualNotification();
+	        showVisualNotification(referral); // Only show the notification and play sound
 	        playNotificationSound();
 	    }
 	});
+
+	function playNotificationSound() {
+	    // Check if audio notifications are enabled in user settings
+	    if (!userSettings || !userSettings.audio_notifications) {
+	        console.log('Audio notifications disabled in user settings');
+	        return;
+	    }
+
+	    const audio = document.getElementById('notificationSound');
+	    if (!audio) {
+	        console.error('Audio element not found');
+	        return;
+	    }
+
+	    if (isSoundPlaying) {
+	        console.log('Sound already playing');
+	        return;
+	    }
+
+	    // Check if audio is enabled (user has interacted with the page)
+	    if (!audioEnabled) {
+	        console.log('Audio not enabled - user needs to interact with page first');
+	        // Try to enable audio by attempting to play
+	        audio.play().then(() => {
+	            audio.pause();
+	            audio.currentTime = 0;
+	            audioEnabled = true;
+	            console.log('Audio enabled successfully');
+	            // Save the audio enabled status to database
+	            saveAudioEnabledStatus(true);
+	            // Now try to play the notification sound
+	            playNotificationSound();
+	        }).catch(e => {
+	            console.log('Audio not enabled yet:', e);
+	            // Only show the message once per session
+	            if (!audioMessageShown) {
+	                showAlert('Click anywhere on the page to enable notification sounds', 'info');
+	                audioMessageShown = true;
+	            }
+	        });
+	        return;
+	    }
+
+	    isSoundPlaying = true;
+	    console.log('Starting notification sound');
+
+	    // Set volume from user settings
+	    audio.volume = userSettings.audio_volume || 0.7;
+
+	    // Function to restart the sound when it ends
+	    const restartSound = () => {
+	        if (isSoundPlaying) {
+	            console.log('Restarting notification sound');
+	            audio.currentTime = 0;
+	            audio.play().catch(e => {
+	                console.log('Audio restart failed:', e);
+	                isSoundPlaying = false;
+	            });
+	        }
+	    };
+
+	    // Store the restart function reference for later removal
+	    audio.restartSound = restartSound;
+
+	    // Listen for when the sound ends to restart it
+	    audio.addEventListener('ended', restartSound);
+
+	    // Start playing
+	    audio.currentTime = 0;
+	    audio.play().catch(e => {
+	        console.log('Audio play failed:', e);
+	        isSoundPlaying = false;
+	        // If autoplay is blocked, try alternative method
+	        if (e.name === 'NotAllowedError') {
+	            console.log('Trying alternative sound method...');
+	            playSoundAlternative();
+	        }
+	    });
+	}
+
+	function stopNotificationSound() {
+	    const audio = document.getElementById('notificationSound');
+	    if (audio) {
+	        isSoundPlaying = false;
+	        audio.pause();
+	        audio.currentTime = 0;
+
+	        // Remove the restart function if it exists
+	        if (audio.restartSound) {
+	            audio.removeEventListener('ended', audio.restartSound);
+	            audio.restartSound = null;
+	        }
+
+	        console.log('Notification sound stopped');
+	    }
+	}
 </script>
 
 {% endblock %}

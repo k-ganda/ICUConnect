@@ -154,4 +154,55 @@
 {% include 'users/partials/admission_form.html' %} {% endblock %} {% block
 scripts %}
 <script src="{{ url_for('static', filename='js/admissions.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('[admissions.html inline] DOMContentLoaded');
+    // Check for transfer_id in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const transferId = urlParams.get('transfer_id');
+    console.log('[admissions.html inline] transferId:', transferId);
+    if (transferId) {
+        fetch(`/transfers/api/transfer/${transferId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('[admissions.html inline] transfer API response:', data);
+                if (
+                    data.success !== false &&
+                    data.transfer &&
+                    data.transfer.id &&
+                    data.transfer.status === 'En Route'
+                ) {
+                    // Open the admission form
+                    const admissionForm = document.getElementById('admissionForm');
+                    const formOverlay = document.getElementById('formOverlay');
+                    admissionForm.classList.add('show');
+                    formOverlay.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                    console.log('[admissions.html inline] Slide-in form opened');
+                    // Prefill form fields
+                    const form = document.getElementById('admissionFormData');
+                    if (form) {
+                        if (data.transfer.patient_age) form.age.value = data.transfer.patient_age;
+                        if (data.transfer.patient_gender) form.gender.value = data.transfer.patient_gender;
+                        if (data.transfer.primary_diagnosis) form.reason.value = data.transfer.primary_diagnosis;
+                        // Optionally set priority if available
+                        if (data.transfer.urgency_level) {
+                            const priorityRadio = form.querySelector(`input[name=\"priority\"][value=\"${data.transfer.urgency_level}\"]`);
+                            if (priorityRadio) priorityRadio.checked = true;
+                        }
+                        // Prefill reserved bed if available
+                        if (data.transfer.reserved_bed_number) {
+                            if (window.setReservedBedToSelect) {
+                                window.setReservedBedToSelect(data.transfer.reserved_bed_number);
+                                if (typeof window.updateAvailableBeds === 'function') {
+                                    window.updateAvailableBeds(data.transfer.reserved_bed_number);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+    }
+});
+</script>
 {% endblock %}
