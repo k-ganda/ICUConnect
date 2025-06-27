@@ -165,6 +165,14 @@
 			</div>
 		</div>
 
+		<audio id="notificationSound" preload="auto">
+			<source
+				src="{{ url_for('static', filename='sounds/notificationsound.mp3') }}"
+				type="audio/mpeg" />
+		</audio>
+		<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+		<script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+
 		<script>
 			document.getElementById('icuPredictionBtn').addEventListener('click', function() {
 			    // You can set the ICU bed capacity here, or fetch it dynamically if needed
@@ -210,55 +218,139 @@
 			    });
 			});
 
+			// Sidebar and mobile menu logic
 			document.addEventListener('DOMContentLoaded', function () {
 				const sidebar = document.getElementById('sidebar');
 				const collapseBtn = document.getElementById('sidebarCollapseBtn');
 				const collapseIcon = document.getElementById('sidebarCollapseIcon');
-				collapseBtn.addEventListener('click', function () {
-					sidebar.classList.toggle('collapsed');
-					// Flip the chevron icon
-					collapseIcon.classList.toggle('fa-chevron-left');
-					collapseIcon.classList.toggle('fa-chevron-right');
+				if (collapseBtn && collapseIcon) {
+					collapseBtn.addEventListener('click', function () {
+						sidebar.classList.toggle('collapsed');
+						collapseIcon.classList.toggle('fa-chevron-left');
+						collapseIcon.classList.toggle('fa-chevron-right');
+					});
+				}
+
+				// Responsive sidebar toggle for mobile
+				const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+				if (mobileSidebarToggle) {
+					mobileSidebarToggle.addEventListener('click', function(e) {
+						e.preventDefault();
+						sidebar.classList.toggle('active');
+						// Optionally add an overlay
+						let overlay = document.getElementById('sidebarOverlay');
+						if (!overlay) {
+							overlay = document.createElement('div');
+							overlay.id = 'sidebarOverlay';
+							overlay.style.position = 'fixed';
+							overlay.style.top = 0;
+							overlay.style.left = 0;
+							overlay.style.width = '100vw';
+							overlay.style.height = '100vh';
+							overlay.style.background = 'rgba(0,0,0,0.3)';
+							overlay.style.zIndex = 1999;
+							document.body.appendChild(overlay);
+							overlay.addEventListener('click', function() {
+								sidebar.classList.remove('active');
+								document.body.removeChild(overlay);
+							});
+						} else {
+							document.body.removeChild(overlay);
+						}
+					});
+				}
+
+				// Hide sidebar and overlay on resize if desktop
+				window.addEventListener('resize', function() {
+					if (window.innerWidth > 768) {
+						sidebar.classList.remove('active');
+						const overlay = document.getElementById('sidebarOverlay');
+						if (overlay) document.body.removeChild(overlay);
+					}
 				});
 			});
-
-			// Responsive sidebar toggle for mobile
-			const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
-			const sidebar = document.getElementById('sidebar');
-
-			mobileSidebarToggle && mobileSidebarToggle.addEventListener('click', function(e) {
-				e.preventDefault();
-				sidebar.classList.toggle('active');
-				// Optionally add an overlay
-				let overlay = document.getElementById('sidebarOverlay');
-				if (!overlay) {
-					overlay = document.createElement('div');
-					overlay.id = 'sidebarOverlay';
-					overlay.style.position = 'fixed';
-					overlay.style.top = 0;
-					overlay.style.left = 0;
-					overlay.style.width = '100vw';
-					overlay.style.height = '100vh';
-					overlay.style.background = 'rgba(0,0,0,0.3)';
-					overlay.style.zIndex = 1999;
-					document.body.appendChild(overlay);
-					overlay.addEventListener('click', function() {
-						sidebar.classList.remove('active');
-						document.body.removeChild(overlay);
-					});
-				} else {
-					document.body.removeChild(overlay);
-				}
-			});
-
-			// Hide sidebar and overlay on resize if desktop
-			window.addEventListener('resize', function() {
-				if (window.innerWidth > 768) {
-					sidebar.classList.remove('active');
-					const overlay = document.getElementById('sidebarOverlay');
-					if (overlay) document.body.removeChild(overlay);
-				}
-			});
 		</script>
+
+		{% if hospital %}
+		<script>
+			window.currentHospitalId = {{ hospital.id }};
+		</script>
+		{% else %}
+		<script>
+			window.currentHospitalId = null;
+		</script>
+		{% endif %}
+
+		<!-- Referral Response Modal -->
+		<div class="modal fade" id="referralResponseModal" tabindex="-1">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">ICU Referral Request</h5>
+						<button
+							type="button"
+							class="btn-close"
+							data-bs-dismiss="modal"></button>
+					</div>
+					<div class="modal-body">
+						<div id="referralDetails"></div>
+						<div class="alert alert-warning mt-3">
+							<i class="fas fa-clock"></i>
+							<strong>Time Remaining:</strong>
+							<span id="timeRemaining">2:00</span>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button
+							type="button"
+							class="btn btn-success"
+							id="acceptReferralBtn">
+							<i class="fas fa-check"></i> Accept Referral
+						</button>
+						<button type="button" class="btn btn-danger" id="rejectReferralBtn">
+							<i class="fas fa-times"></i> Reject Referral
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Rejection Reason Modal -->
+		<div class="modal fade" id="rejectionReasonModal" tabindex="-1">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Rejection Reason</h5>
+						<button
+							type="button"
+							class="btn-close"
+							data-bs-dismiss="modal"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label class="form-label"
+								>Please provide a reason for rejection:</label
+							>
+							<textarea
+								class="form-control"
+								id="rejectionReason"
+								rows="3"
+								placeholder="Explain why this referral cannot be accepted..."></textarea>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button
+							type="button"
+							class="btn btn-secondary"
+							data-bs-dismiss="modal">
+							Cancel
+						</button>
+						<button type="button" class="btn btn-danger" id="confirmRejectBtn">
+							<i class="fas fa-times"></i> Confirm Rejection
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
 	</body>
 </html>

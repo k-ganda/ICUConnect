@@ -46,7 +46,8 @@ def guide():
     # Prevent admin from accessing user guide
     if isinstance(current_user, Admin):
         abort(403)
-    return render_template('users/guide.html')
+    hospital = Hospital.query.get(current_user.hospital_id)
+    return render_template('users/guide.html', hospital=hospital)
 
 @user_bp.route('/settings')
 @login_required
@@ -62,7 +63,8 @@ def settings():
         db.session.add(user_settings)
         db.session.commit()
     
-    return render_template('users/settings.html', settings=user_settings)
+    hospital = Hospital.query.get(current_user.hospital_id)
+    return render_template('users/settings.html', settings=user_settings, hospital=hospital)
 
 @user_bp.route('/api/settings', methods=['GET', 'POST'])
 @login_required
