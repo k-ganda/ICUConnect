@@ -26,6 +26,68 @@
 					display: none !important;
 				}
 			}
+
+			/* Notification Center Styles */
+			.notification-item {
+				cursor: pointer;
+				transition: background-color 0.2s ease;
+			}
+
+			.notification-item:hover {
+				background-color: #f8f9fa;
+			}
+
+			.notification-item:last-child {
+				border-bottom: none !important;
+			}
+
+			.notification-icon {
+				width: 40px;
+				height: 40px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: 50%;
+				background-color: rgba(0, 123, 255, 0.1);
+			}
+
+			.notifications-container {
+				scrollbar-width: thin;
+				scrollbar-color: #dee2e6 #f8f9fa;
+			}
+
+			.notifications-container::-webkit-scrollbar {
+				width: 6px;
+			}
+
+			.notifications-container::-webkit-scrollbar-track {
+				background: #f8f9fa;
+			}
+
+			.notifications-container::-webkit-scrollbar-thumb {
+				background: #dee2e6;
+				border-radius: 3px;
+			}
+
+			.notifications-container::-webkit-scrollbar-thumb:hover {
+				background: #adb5bd;
+			}
+
+			#notificationBadge {
+				position: absolute;
+				top: -5px;
+				right: -5px;
+				font-size: 0.7rem;
+				min-width: 18px;
+				height: 18px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			#notificationCenterBtn {
+				position: relative;
+			}
 		</style>
 	</head>
 	<body>
@@ -113,10 +175,22 @@
 								<i class="fas fa-search"></i>
 							</button>
 							<button
+								class="btn btn-outline-secondary me-2"
+								id="notificationCenterBtn"
+								title="Notification Center">
+								<i class="fas fa-bell"></i>
+								<span
+									class="badge bg-primary"
+									id="notificationBadge"
+									style="display: none"
+									>0</span
+								>
+							</button>
+							<button
 								class="btn btn-outline-secondary"
 								id="icuPredictionBtn"
 								title="Predict ICU Occupancy">
-								<i class="fas fa-bell"></i>
+								<i class="fas fa-chart-line"></i>
 								<span class="badge bg-danger">Prediction</span>
 							</button>
 						</div>
@@ -160,6 +234,88 @@
 					</div>
 					<div class="modal-body" id="icuPredictionResult">
 						<!-- Result will be injected here -->
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Notification Center Modal -->
+		<div
+			class="modal fade"
+			id="notificationCenterModal"
+			tabindex="-1"
+			aria-labelledby="notificationCenterModalLabel"
+			aria-hidden="true">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header bg-primary text-white">
+						<h5 class="modal-title" id="notificationCenterModalLabel">
+							<i class="fas fa-bell me-2"></i>Notification Center
+						</h5>
+						<div class="d-flex align-items-center">
+							<button
+								type="button"
+								class="btn btn-sm btn-outline-light me-2"
+								id="markAllReadBtn">
+								<i class="fas fa-check-double"></i> Mark All Read
+							</button>
+							<button
+								type="button"
+								class="btn btn-sm btn-outline-light me-2"
+								id="clearAllNotificationsBtn">
+								<i class="fas fa-trash"></i> Clear All
+							</button>
+							<button
+								type="button"
+								class="btn-close btn-close-white"
+								data-bs-dismiss="modal"
+								aria-label="Close"></button>
+						</div>
+					</div>
+					<div class="modal-body p-0">
+						<div class="notification-filters p-3 border-bottom">
+							<div class="row">
+								<div class="col-md-6">
+									<select
+										class="form-select form-select-sm"
+										id="notificationTypeFilter">
+										<option value="all">All Notifications</option>
+										<option value="referral">Referrals</option>
+										<option value="transfer">Transfers</option>
+										<option value="system">System</option>
+									</select>
+								</div>
+								<div class="col-md-6">
+									<select
+										class="form-select form-select-sm"
+										id="notificationStatusFilter">
+										<option value="all">All Status</option>
+										<option value="unread">Unread Only</option>
+										<option value="read">Read Only</option>
+									</select>
+								</div>
+							</div>
+						</div>
+						<div
+							id="notificationsList"
+							class="notifications-container"
+							style="max-height: 400px; overflow-y: auto">
+							<div class="p-4 text-center text-muted">
+								<i class="fas fa-bell fa-2x mb-3"></i>
+								<p>No notifications yet</p>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<small class="text-muted me-auto">
+							<span id="notificationCount">0</span> notifications
+						</small>
+						<button
+							type="button"
+							class="btn btn-secondary"
+							data-bs-dismiss="modal">
+							Close
+						</button>
 					</div>
 				</div>
 			</div>
@@ -269,6 +425,232 @@
 					}
 				});
 			});
+
+			// Global notification variables
+			let notifications = [];
+			let unreadCount = 0;
+
+			// Initialize notification center
+			document.addEventListener('DOMContentLoaded', function() {
+				loadNotifications();
+				setupNotificationCenterListeners();
+				updateNotificationBadge();
+			});
+
+			// Load notifications from localStorage
+			function loadNotifications() {
+				const saved = localStorage.getItem('icuNotifications');
+				if (saved) {
+					notifications = JSON.parse(saved);
+					unreadCount = notifications.filter(n => !n.read).length;
+				}
+			}
+
+			// Save notifications to localStorage
+			function saveNotifications() {
+				localStorage.setItem('icuNotifications', JSON.stringify(notifications));
+				unreadCount = notifications.filter(n => !n.read).length;
+				updateNotificationBadge();
+			}
+
+			// Add new notification
+			function addNotification(type, title, message, data = {}) {
+				const notification = {
+					id: Date.now() + Math.random(),
+					type: type, // 'referral', 'transfer', 'system'
+					title: title,
+					message: message,
+					timestamp: new Date().toISOString(),
+					read: false,
+					data: data
+				};
+
+				notifications.unshift(notification);
+				if (notifications.length > 100) { // Keep only last 100 notifications
+					notifications = notifications.slice(0, 100);
+				}
+
+				saveNotifications();
+				renderNotifications();
+
+				// Show notification center button if modal is open
+				const modal = bootstrap.Modal.getInstance(document.getElementById('notificationCenterModal'));
+				if (modal && modal._isShown) {
+					renderNotifications();
+				}
+			}
+
+			// Render notifications in the modal
+			function renderNotifications() {
+				const container = document.getElementById('notificationsList');
+				const typeFilter = document.getElementById('notificationTypeFilter').value;
+				const statusFilter = document.getElementById('notificationStatusFilter').value;
+
+				let filteredNotifications = notifications;
+
+				// Apply type filter
+				if (typeFilter !== 'all') {
+					filteredNotifications = filteredNotifications.filter(n => n.type === typeFilter);
+				}
+
+				// Apply status filter
+				if (statusFilter === 'unread') {
+					filteredNotifications = filteredNotifications.filter(n => !n.read);
+				} else if (statusFilter === 'read') {
+					filteredNotifications = filteredNotifications.filter(n => n.read);
+				}
+
+				if (filteredNotifications.length === 0) {
+					container.innerHTML = `
+						<div class="p-4 text-center text-muted">
+							<i class="fas fa-bell fa-2x mb-3"></i>
+							<p>No notifications found</p>
+						</div>
+					`;
+					return;
+				}
+
+				container.innerHTML = filteredNotifications.map(notification => {
+					const icon = getNotificationIcon(notification.type);
+					const color = getNotificationColor(notification.type);
+					const timeAgo = getTimeAgo(notification.timestamp);
+					const readClass = notification.read ? 'opacity-75' : 'fw-bold';
+
+					return `
+						<div class="notification-item p-3 border-bottom ${readClass}" data-notification-id="${notification.id}">
+							<div class="d-flex align-items-start">
+								<div class="notification-icon me-3">
+									<i class="fas ${icon} fa-lg text-${color}"></i>
+								</div>
+								<div class="flex-grow-1">
+									<div class="d-flex justify-content-between align-items-start">
+										<h6 class="mb-1">${notification.title}</h6>
+										<small class="text-muted">${timeAgo}</small>
+									</div>
+									<p class="mb-1 text-muted">${notification.message}</p>
+									<div class="d-flex justify-content-between align-items-center">
+										<small class="badge bg-${color} bg-opacity-10 text-${color}">${notification.type}</small>
+										${!notification.read ? '<span class="badge bg-primary">New</span>' : ''}
+									</div>
+								</div>
+							</div>
+						</div>
+					`;
+				}).join('');
+
+				// Add click listeners to mark as read
+				container.querySelectorAll('.notification-item').forEach(item => {
+					item.addEventListener('click', function() {
+						const notificationId = parseInt(this.dataset.notificationId);
+						markNotificationAsRead(notificationId);
+					});
+				});
+
+				// Update notification count
+				document.getElementById('notificationCount').textContent = filteredNotifications.length;
+			}
+
+			// Get notification icon based on type
+			function getNotificationIcon(type) {
+				switch(type) {
+					case 'referral': return 'fa-user-plus';
+					case 'transfer': return 'fa-ambulance';
+					case 'system': return 'fa-cog';
+					default: return 'fa-bell';
+				}
+			}
+
+			// Get notification color based on type
+			function getNotificationColor(type) {
+				switch(type) {
+					case 'referral': return 'primary';
+					case 'transfer': return 'success';
+					case 'system': return 'warning';
+					default: return 'secondary';
+				}
+			}
+
+			// Get time ago string
+			function getTimeAgo(timestamp) {
+				const now = new Date();
+				const time = new Date(timestamp);
+				const diffMs = now - time;
+				const diffMins = Math.floor(diffMs / 60000);
+				const diffHours = Math.floor(diffMs / 3600000);
+				const diffDays = Math.floor(diffMs / 86400000);
+
+				if (diffMins < 1) return 'Just now';
+				if (diffMins < 60) return `${diffMins}m ago`;
+				if (diffHours < 24) return `${diffHours}h ago`;
+				return `${diffDays}d ago`;
+			}
+
+			// Mark notification as read
+			function markNotificationAsRead(notificationId) {
+				const notification = notifications.find(n => n.id === notificationId);
+				if (notification && !notification.read) {
+					notification.read = true;
+					saveNotifications();
+					renderNotifications();
+				}
+			}
+
+			// Mark all notifications as read
+			function markAllAsRead() {
+				notifications.forEach(n => n.read = true);
+				saveNotifications();
+				renderNotifications();
+			}
+
+			// Clear all notifications
+			function clearAllNotifications() {
+				if (confirm('Are you sure you want to clear all notifications?')) {
+					notifications = [];
+					saveNotifications();
+					renderNotifications();
+				}
+			}
+
+			// Update notification badge
+			function updateNotificationBadge() {
+				const badge = document.getElementById('notificationBadge');
+				if (unreadCount > 0) {
+					badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+					badge.style.display = 'inline';
+				} else {
+					badge.style.display = 'none';
+				}
+			}
+
+			// Setup notification center event listeners
+			function setupNotificationCenterListeners() {
+				// Notification center button
+				document.getElementById('notificationCenterBtn').addEventListener('click', function() {
+					const modal = new bootstrap.Modal(document.getElementById('notificationCenterModal'));
+					modal.show();
+					renderNotifications();
+				});
+
+				// Mark all read button
+				document.getElementById('markAllReadBtn').addEventListener('click', markAllAsRead);
+
+				// Clear all button
+				document.getElementById('clearAllNotificationsBtn').addEventListener('click', clearAllNotifications);
+
+				// Filter change listeners
+				document.getElementById('notificationTypeFilter').addEventListener('change', renderNotifications);
+				document.getElementById('notificationStatusFilter').addEventListener('change', renderNotifications);
+			}
+
+			// Make addNotification globally available
+			window.addNotification = addNotification;
+
+			// Test function for notifications (can be removed in production)
+			window.testNotification = function() {
+				addNotification('referral', 'Test Referral', 'This is a test referral notification');
+				addNotification('transfer', 'Test Transfer', 'This is a test transfer notification');
+				addNotification('system', 'Test System', 'This is a test system notification');
+			};
 		</script>
 
 		{% if hospital %}
@@ -352,5 +734,16 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Global notification sound -->
+		<audio
+			id="globalNotificationSound"
+			src="/static/sounds/short-beep.mp3"
+			preload="auto"></audio>
+
+		<!-- Global toast notification container -->
+		<div
+			id="globalToastContainer"
+			style="position: fixed; bottom: 30px; right: 30px; z-index: 99999"></div>
 	</body>
 </html>

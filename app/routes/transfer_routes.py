@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-from app import db
+from app import db, socketio
 from app.models import Hospital, PatientTransfer, ReferralRequest, UserSettings, Admission, Bed
 from app.utils import get_current_local_time, to_utc_time
 import json
@@ -126,7 +126,7 @@ def active_transfers():
     """Get active transfers for the current hospital"""
     try:
         hospital_id = current_user.hospital_id
-        
+        print(f"[DEBUG] Current user hospital_id: {hospital_id}")
         # Get transfers where this hospital is either sending or receiving
         transfers = PatientTransfer.query.filter(
             db.or_(
@@ -135,7 +135,9 @@ def active_transfers():
             ),
             PatientTransfer.status == 'En Route'  # Only show en route
         ).order_by(PatientTransfer.transfer_initiated_at.desc()).all()
-        
+        print(f"[DEBUG] Found {len(transfers)} transfers for hospital_id {hospital_id}")
+        for t in transfers:
+            print(f"[DEBUG] Transfer ID: {t.id}, from_hospital_id: {t.from_hospital_id}, to_hospital_id: {t.to_hospital_id}, status: {t.status}")
         transfers_data = []
         for transfer in transfers:
             transfers_data.append({
@@ -160,12 +162,10 @@ def active_transfers():
                 'transfer_notes': transfer.transfer_notes,
                 'arrival_notes': transfer.arrival_notes
             })
-        
         return jsonify({
             'success': True,
             'transfers': transfers_data
         }), 200
-        
     except Exception as e:
         return jsonify({
             'success': False,
@@ -240,6 +240,21 @@ def send_admission_notification(transfer):
         # This would integrate with your existing notification system
         # For now, we'll just log it
         current_app.logger.info(f"Patient {transfer.patient_name} admitted at {transfer.to_hospital.name}")
+        
+        # Emit socket event to notify the sending hospital
+        transfer_data = {
+            'id': transfer.id,
+            'status': transfer.status,
+            'from_hospital': transfer.from_hospital.name,
+            'to_hospital': transfer.to_hospital.name,
+            'from_hospital_id': transfer.from_hospital_id,
+            'to_hospital_id': transfer.to_hospital_id,
+            'patient_name': transfer.patient_name,
+            'patient_age': transfer.patient_age,
+            'patient_gender': transfer.patient_gender,
+            'admitted_at': transfer.admitted_at.isoformat() if transfer.admitted_at else None
+        }
+        socketio.emit('transfer_status_update', transfer_data)
         
         # You could add email/SMS notifications here
         # send_email_notification(transfer)

@@ -201,6 +201,24 @@ def respond_to_referral():
                 transfer_notes=data.get('transfer_notes', '')
             )
             db.session.add(transfer)
+            db.session.commit()
+
+            # Emit transfer_status_update for the new transfer
+            transfer_data = {
+                'id': transfer.id,
+                'status': transfer.status,
+                'from_hospital': transfer.from_hospital.name,
+                'to_hospital': transfer.to_hospital.name,
+                'from_hospital_id': transfer.from_hospital_id,
+                'to_hospital_id': transfer.to_hospital_id,
+                'patient_name': transfer.patient_name,
+                'patient_age': transfer.patient_age,
+                'patient_gender': transfer.patient_gender,
+                'admitted_at': transfer.admitted_at.isoformat() if transfer.admitted_at else None
+            }
+            print("Emitting transfer_status_update:", transfer_data)
+            socketio.emit('transfer_status_update', transfer_data)
+            print("Emitted transfer_status_update")
         elif response_type == 'reject':
             referral.status = 'Rejected'
             referral.responded_at = datetime.utcnow()
@@ -215,6 +233,17 @@ def respond_to_referral():
         )
         db.session.add(response)
         db.session.commit()
+        
+        # Emit socket event to notify the requesting hospital about the response
+        response_data = {
+            'referral_id': referral_id,
+            'response_type': response_type,
+            'response_message': response_message,
+            'target_hospital': responding_hospital.name,
+            'responding_hospital_id': responding_hospital.id,
+            'requesting_hospital_id': referral.requesting_hospital_id
+        }
+        socketio.emit('referral_response', response_data)
         
         return jsonify({
             'success': True,

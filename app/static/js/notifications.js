@@ -192,6 +192,17 @@ function acceptReferral() {
 					currentNotification.remove();
 					currentNotification = null;
 				}
+
+				// Add notification to notification center for the accepting hospital
+				if (window.addNotification) {
+					window.addNotification(
+						'referral',
+						'Referral Accepted',
+						`ICU referral request has been accepted successfully.`,
+						{ referral_id: currentReferralId }
+					);
+				}
+
 				showAlert('Referral accepted successfully!', 'success');
 				closeReferralModal();
 			} else {
@@ -205,7 +216,13 @@ function acceptReferral() {
 }
 
 function rejectReferral(reason) {
-	if (!currentReferralId) return;
+	console.log('rejectReferral called with reason:', reason);
+	if (!currentReferralId) {
+		console.warn('No currentReferralId available');
+		return;
+	}
+	console.log('Current referral ID:', currentReferralId);
+
 	fetch('/referrals/api/respond-to-referral', {
 		method: 'POST',
 		headers: {
@@ -219,8 +236,25 @@ function rejectReferral(reason) {
 	})
 		.then((response) => response.json())
 		.then((data) => {
+			console.log('Reject referral response:', data);
 			if (data.success) {
 				stopNotificationSound();
+
+				// Add notification to notification center for the rejecting hospital
+				if (window.addNotification) {
+					console.log('Adding rejection notification to notification center');
+					window.addNotification(
+						'referral',
+						'Referral Rejected',
+						`ICU referral request was rejected. Reason: ${reason}`,
+						{ referral_id: currentReferralId, reason: reason }
+					);
+				} else {
+					console.warn(
+						'addNotification function not available in rejectReferral'
+					);
+				}
+
 				showAlert('Referral rejected', 'info');
 				closeReferralModal();
 				closeRejectionModal();
@@ -229,7 +263,7 @@ function rejectReferral(reason) {
 			}
 		})
 		.catch((error) => {
-			console.error('Error:', error);
+			console.error('Error rejecting referral:', error);
 			showAlert('Error rejecting referral', 'error');
 		});
 }
@@ -388,7 +422,8 @@ function showAlert(message, type) {
 }
 
 // --- SOCKET.IO REAL-TIME REFERRALS ---
-const socket = io();
+window.socket = io();
+const socket = window.socket;
 socket.on('connect', function () {
 	console.log('Connected to WebSocket server');
 });
@@ -400,6 +435,122 @@ socket.on('new_referral', function (referral) {
 		showVisualNotification(referral);
 		playNotificationSound();
 		startReferralCountdown(referral); // Start countdown immediately
+
+		// Add notification to notification center
+		if (window.addNotification) {
+			window.addNotification(
+				'referral',
+				'New ICU Referral Request',
+				`New referral request received from ${referral.requesting_hospital}`,
+				{
+					referral_id: referral.id,
+					requesting_hospital: referral.requesting_hospital,
+				}
+			);
+		}
+	}
+});
+
+// Listen for transfer status updates
+socket.on('transfer_status_update', function (transfer) {
+	console.log('Transfer status update received:', transfer);
+
+	// Only show notifications to the sending or receiving hospital
+	if (
+		window.currentHospitalId &&
+		(window.currentHospitalId == transfer.from_hospital_id ||
+			window.currentHospitalId == transfer.to_hospital_id)
+	) {
+		if (window.addNotification) {
+			let title, message;
+
+			switch (transfer.status) {
+				case 'En Route':
+					title = 'Patient Transfer Started';
+					message = `Patient transfer from ${transfer.from_hospital} is now en route`;
+					break;
+				case 'Arrived':
+					title = 'Patient Transfer Arrived';
+					message = `Patient transfer from ${transfer.from_hospital} has arrived`;
+					break;
+				case 'Admitted':
+					if (window.currentHospitalId == transfer.from_hospital_id) {
+						title = 'Patient Admitted';
+						message = `Your patient referral at ${transfer.to_hospital} has been admitted.`;
+						window.addNotification('transfer', title, message, {
+							transfer_id: transfer.id,
+							status: transfer.status,
+							from_hospital: transfer.from_hospital,
+							to_hospital: transfer.to_hospital,
+						});
+					}
+					// Do not notify the receiving hospital on admission
+					return;
+				case 'Cancelled':
+					title = 'Transfer Cancelled';
+					message = `Patient transfer from ${transfer.from_hospital} was cancelled`;
+					break;
+				default:
+					title = 'Transfer Status Update';
+					message = `Transfer status changed to: ${transfer.status}`;
+			}
+
+			// For all other statuses, notify both hospitals as before
+			if (transfer.status !== 'Admitted') {
+				console.log('Adding transfer notification:', { title, message });
+				window.addNotification('transfer', title, message, {
+					transfer_id: transfer.id,
+					status: transfer.status,
+					from_hospital: transfer.from_hospital,
+					to_hospital: transfer.to_hospital,
+				});
+			}
+		} else {
+			console.warn(
+				'addNotification function not available for transfer update'
+			);
+		}
+	} else {
+		console.log('Transfer update not relevant for current hospital');
+	}
+});
+
+// Listen for referral responses (for the sending hospital)
+socket.on('referral_response', function (response) {
+	console.log('Referral response received:', response);
+	console.log(
+		'Current hospital ID:',
+		window.currentHospitalId,
+		'Requesting hospital ID:',
+		response.requesting_hospital_id
+	);
+	if (window.addNotification) {
+		// Only show to the sending hospital
+		if (
+			window.currentHospitalId &&
+			window.currentHospitalId == response.requesting_hospital_id
+		) {
+			const title =
+				response.response_type === 'accept'
+					? 'Referral Accepted'
+					: 'Referral Rejected';
+			const message =
+				response.response_type === 'accept'
+					? `Your referral to ${response.target_hospital} was accepted`
+					: `Your referral to ${response.target_hospital} was rejected. Reason: ${response.response_message}`;
+
+			console.log('Adding notification for referral response:', {
+				title,
+				message,
+			});
+			window.addNotification('referral', title, message, {
+				referral_id: response.referral_id,
+				response_type: response.response_type,
+				target_hospital: response.target_hospital,
+			});
+		}
+	} else {
+		console.warn('addNotification function not available');
 	}
 });
 
@@ -427,3 +578,58 @@ document.addEventListener('DOMContentLoaded', function () {
 		{ once: true }
 	);
 });
+
+// --- GLOBAL TOAST AND SOUND NOTIFICATION ---
+window.showGlobalNotification = function (title, message) {
+	// Play global notification sound if enabled
+	const audio = document.getElementById('globalNotificationSound');
+	if (audio) {
+		audio.currentTime = 0;
+		audio.play().catch(() => {});
+	}
+	// Show toast
+	const container = document.getElementById('globalToastContainer');
+	if (!container) return;
+	// Create toast element
+	const toast = document.createElement('div');
+	toast.className = 'global-toast shadow';
+	toast.style.cssText = `
+        min-width: 280px;
+        max-width: 350px;
+        background: #222;
+        color: #fff;
+        border-radius: 8px;
+        margin-top: 10px;
+        padding: 16px 24px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        cursor: pointer;
+        opacity: 0.97;
+        animation: fadeIn 0.3s;
+    `;
+	toast.innerHTML = `
+        <div style="flex:1;">
+            <strong style="font-size:1.1em;">${title}</strong><br>
+            <span style="font-size:0.97em;">${message}</span>
+        </div>
+        <span style="margin-left:16px; font-size:1.3em; opacity:0.7;">🔔</span>
+    `;
+	// Remove toast on click
+	toast.onclick = () => toast.remove();
+	// Auto-dismiss after 5 seconds
+	setTimeout(() => toast.remove(), 5000);
+	container.appendChild(toast);
+};
+
+// Patch addNotification to also show a global toast and sound
+const originalAddNotification = window.addNotification;
+window.addNotification = function (type, title, message, meta) {
+	// Call the original notification logic
+	if (originalAddNotification) {
+		originalAddNotification(type, title, message, meta);
+	}
+	// Show global toast and sound
+	window.showGlobalNotification(title, message);
+};

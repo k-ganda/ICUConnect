@@ -316,6 +316,7 @@
 	}
 
 	function loadActiveTransfers() {
+	    console.log("Calling loadActiveTransfers()");
 	    fetch('/transfers/api/active-transfers')
 	        .then(response => {
 	            if (!response.ok) {
@@ -379,6 +380,22 @@
 	        .then(response => response.json())
 	        .then(data => {
 	            if (data.success) {
+	                // Add notification to notification center
+	                if (window.addNotification) {
+	                    const targetHospitalName = document.getElementById('selectedHospitalName').textContent;
+	                    window.addNotification(
+	                        'referral',
+	                        'Referral Sent',
+	                        `ICU referral request sent to ${targetHospitalName}`,
+	                        {
+	                            target_hospital_id: formData.target_hospital_id,
+	                            target_hospital_name: targetHospitalName,
+	                            patient_age: formData.patient_age,
+	                            patient_gender: formData.patient_gender
+	                        }
+	                    );
+	                }
+
 	                showAlert(data.message, 'success');
 	                closeReferralForm();
 	            } else {
@@ -476,6 +493,13 @@
 	            alertDiv.remove();
 	        }
 	    }, 5000);
+	}
+
+	if (window.socket) {
+	    window.socket.on('transfer_status_update', function (transfer) {
+	        console.log("Received transfer_status_update", transfer);
+	        loadActiveTransfers(); // Refresh the transfer list immediately
+	    });
 	}
 </script>
 

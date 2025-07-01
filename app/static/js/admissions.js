@@ -159,10 +159,24 @@ document.addEventListener('DOMContentLoaded', function () {
 									arrival_notes: '',
 								}),
 							}).then(() => {
+								// Removed duplicate notification here. The real-time notification will be handled by notifications.js
 								url.searchParams.delete('transfer_id');
 								window.location.replace(url.toString());
 							});
 						} else {
+							// Add notification for regular admission
+							if (window.addNotification) {
+								window.addNotification(
+									'system',
+									'Patient Admitted',
+									`New patient ${formData.patient_name} has been admitted to ICU`,
+									{
+										patient_name: formData.patient_name,
+										bed_number: formData.bed_number,
+									}
+								);
+							}
+
 							url.searchParams.delete('transfer_id');
 							window.location.replace(url.toString());
 						}
