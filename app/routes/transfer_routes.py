@@ -256,9 +256,7 @@ def send_admission_notification(transfer):
         }
         socketio.emit('transfer_status_update', transfer_data)
         
-        # You could add email/SMS notifications here
-        # send_email_notification(transfer)
-        # send_sms_notification(transfer)
+        
         
     except Exception as e:
         current_app.logger.error(f"Error sending admission notification: {e}") 

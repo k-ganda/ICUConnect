@@ -453,7 +453,12 @@ socket.on('new_referral', function (referral) {
 
 // Listen for transfer status updates
 socket.on('transfer_status_update', function (transfer) {
-	console.log('Transfer status update received:', transfer);
+	console.log(
+		'Transfer status update received:',
+		transfer,
+		'Current hospital:',
+		window.currentHospitalId
+	);
 
 	// Only show notifications to the sending or receiving hospital
 	if (
@@ -512,6 +517,18 @@ socket.on('transfer_status_update', function (transfer) {
 		}
 	} else {
 		console.log('Transfer update not relevant for current hospital');
+	}
+
+	// Also update dashboard if function is available
+	if (typeof window.loadActiveTransfers === 'function') {
+		if (transfer.status === 'Admitted') {
+			setTimeout(() => window.loadActiveTransfers(), 500);
+		} else {
+			window.loadActiveTransfers();
+		}
+	} else if (transfer.status === 'Admitted') {
+		// Fallback: force reload if admitted and function not available
+		setTimeout(() => window.location.reload(), 500);
 	}
 });
 

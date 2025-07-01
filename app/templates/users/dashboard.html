@@ -182,11 +182,19 @@
 	</div>
 </div>
 
+<!-- Toast Notification Container -->
+<div
+	id="toastContainer"
+	style="position: fixed; top: 20px; right: 20px; z-index: 1055"></div>
+
 {% endblock %} {% block scripts %}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
 	// Dashboard-specific variables
 	let activeTransfers = [];
 	let currentTransferId = null;
+	let hospitalMarkers = {};
+	let map; // Make map accessible globally
 
 	document.addEventListener('DOMContentLoaded', function() {
 	    // Initialize map
@@ -200,7 +208,7 @@
 	});
 
 	function initMap() {
-	    const map = L.map('map').setView([-0.1022, 34.7617], 10);
+	    map = L.map('map').setView([-0.1022, 34.7617], 10);
 	    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	        attribution: '© OpenStreetMap'
 	    }).addTo(map);
@@ -284,6 +292,7 @@
 	                });
 	            });
 	        });
+	        hospitalMarkers[hospital.id] = marker;
 	    });
 	}
 
@@ -362,7 +371,7 @@
 
 	    // Validate form
 	    if (!formData.target_hospital_id) {
-	        showAlert('Please select a target hospital', 'error');
+	        showToast('Please select a target hospital', 'error');
 	        return;
 	    }
 
@@ -396,15 +405,15 @@
 	                    );
 	                }
 
-	                showAlert(data.message, 'success');
+	                showToast(data.message, 'success');
 	                closeReferralForm();
 	            } else {
-	                showAlert(data.message, 'error');
+	                showToast(data.message, 'error');
 	            }
 	        })
 	        .catch(error => {
 	            console.error('Error:', error);
-	            showAlert('An error occurred while sending the referral', 'error');
+	            showToast('An error occurred while sending the referral', 'error');
 	        })
 	        .finally(() => {
 	            submitBtn.disabled = false;
@@ -477,28 +486,103 @@
 	    });
 	}
 
-	function showAlert(message, type) {
-	    const alertDiv = document.createElement('div');
-	    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
-	    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-	    alertDiv.innerHTML = `
-	        ${message}
-	        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+	function showToast(message, type = 'info') {
+	    const toastId = `toast-${Date.now()}`;
+	    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+	    const bgColor = type === 'success' ? '#198754' : type === 'error' ? '#dc3545' : '#0d6efd';
+
+	    const toast = document.createElement('div');
+	    toast.id = toastId;
+	    toast.className = 'toast align-items-center text-white border-0 show';
+	    toast.style.cssText = `
+	        min-width: 300px;
+	        background-color: ${bgColor};
+	        margin-bottom: 10px;
+	        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+	        opacity: 0.95;
+	        transition: opacity 0.3s;
+	    `;
+	    toast.innerHTML = `
+	        <div class="d-flex">
+	            <div class="toast-body">
+	                <span style="font-size: 1.2em; margin-right: 8px;">${icon}</span>
+	                ${message}
+	            </div>
+	            <button type="button" class="btn-close btn-close-white me-2 m-auto" aria-label="Close"></button>
+	        </div>
 	    `;
 
-	    document.body.appendChild(alertDiv);
+	    // Remove toast on close
+	    toast.querySelector('.btn-close').onclick = () => toast.remove();
 
+	    // Auto-remove after 5 seconds
 	    setTimeout(() => {
-	        if (alertDiv.parentNode) {
-	            alertDiv.remove();
-	        }
+	        toast.style.opacity = '0';
+	        setTimeout(() => toast.remove(), 300);
 	    }, 5000);
+
+	    document.getElementById('toastContainer').appendChild(toast);
 	}
 
-	if (window.socket) {
-	    window.socket.on('transfer_status_update', function (transfer) {
-	        console.log("Received transfer_status_update", transfer);
-	        loadActiveTransfers(); // Refresh the transfer list immediately
+	function showAlert(message, type) {
+	    showToast(message, type);
+	}
+
+	// NOTE: window.socket is initialized in notifications.js. Do not initialize it here.
+
+	function updateBedStatsCards(hospitalStats) {
+	    document.querySelectorAll('.card-title').forEach(card => {
+	        if (card.textContent.includes('Total Beds')) {
+	            card.parentElement.querySelector('h2').textContent = hospitalStats.total_beds;
+	        }
+	        if (card.textContent.includes('Occupied Beds')) {
+	            card.parentElement.querySelector('h2').textContent = hospitalStats.total_beds - hospitalStats.available_beds;
+	        }
+	        if (card.textContent.includes('Available Beds')) {
+	            card.parentElement.querySelector('h2').textContent = hospitalStats.available_beds;
+	        }
+	    });
+	}
+
+	function updateMapPins(hospitals) {
+	    // Remove old markers
+	    if (hospitalMarkers && map) {
+	        Object.values(hospitalMarkers).forEach(marker => map.removeLayer(marker));
+	    }
+	    hospitalMarkers = {};
+	    hospitals.forEach(hospital => {
+	        if (!hospital.lat || !hospital.lng) return;
+	        const color = getAvailabilityColor(hospital.available, hospital.beds);
+	        const icon = createHospitalIcon(color, hospital.available);
+	        const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
+	            .bindPopup(`
+	                <div class="hospital-popup">
+	                    <h6><strong>${hospital.name}</strong></h6>
+	                    ${hospital.level ? `<p>Level: <strong>${hospital.level}</strong></p>` : ''}
+	                    <p>Total Beds: <strong>${hospital.beds}</strong></p>
+	                    <p>Available: <strong>${hospital.available}</strong></p>
+	                    <button class="btn btn-sm btn-primary mt-2 w-100 select-hospital-btn"
+	                            data-hospital-id="${hospital.id}"
+	                            data-hospital-name="${hospital.name}">
+	                        Select for Referral
+	                    </button>
+	                </div>
+	            `);
+	        marker.on('popupopen', function() {
+	            document.querySelector('.select-hospital-btn').addEventListener('click', function() {
+	                const hospitalId = this.dataset.hospitalId;
+	                const hospitalName = this.dataset.hospitalName;
+	                document.getElementById('targetHospitalId').value = hospitalId;
+	                document.getElementById('selectedHospitalName').textContent = hospitalName;
+	                document.getElementById('selectedHospitalDisplay').style.display = 'block';
+	                document.getElementById('referralFormCard').style.display = 'block';
+	                document.getElementById('referralFormCard').scrollIntoView({
+	                    behavior: 'smooth',
+	                    block: 'start'
+	                });
+	            });
+	        });
+	        hospitalMarkers[hospital.id] = marker;
 	    });
 	}
 </script>
