@@ -6,6 +6,7 @@ from app import db
 from app.models import Hospital, Admission, Bed
 from app.utils import get_current_local_time, to_utc_time, to_local_time, local_date_to_utc, get_local_timezone
 import pytz
+from app import socketio
 
 admission_bp = Blueprint('admission', __name__)
 
@@ -186,6 +187,26 @@ def admit_patient():
         bed.is_occupied = True
         db.session.add(admission)
         db.session.commit()
+
+        # Emit bed_stats_update for real-time dashboard update
+        hospital_stats = {
+            'hospital_id': hospital.id,
+            'total_beds': hospital.total_beds,
+            'available_beds': hospital.available_beds,
+        }
+        hospitals_data = [{
+            'id': h.id,
+            'name': h.name,
+            'lat': h.latitude,
+            'lng': h.longitude,
+            'level': h.level,
+            'beds': h.total_beds,
+            'available': h.available_beds
+        } for h in Hospital.query.all()]
+        socketio.emit('bed_stats_update', {
+            'hospital_stats': hospital_stats,
+            'hospitals': hospitals_data
+        })
 
         return jsonify({
             'success': True,

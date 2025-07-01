@@ -522,13 +522,13 @@ socket.on('transfer_status_update', function (transfer) {
 	// Also update dashboard if function is available
 	if (typeof window.loadActiveTransfers === 'function') {
 		if (transfer.status === 'Admitted') {
-			setTimeout(() => window.loadActiveTransfers(), 500);
+			setTimeout(() => window.loadActiveTransfers(), 1500);
 		} else {
 			window.loadActiveTransfers();
 		}
 	} else if (transfer.status === 'Admitted') {
 		// Fallback: force reload if admitted and function not available
-		setTimeout(() => window.location.reload(), 500);
+		setTimeout(() => window.location.reload(), 1500);
 	}
 });
 

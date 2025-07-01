@@ -5,6 +5,7 @@ from app import db
 from app.models import Discharge, Admission, Hospital
 from sqlalchemy.orm import joinedload
 from app.utils import get_current_local_time, to_utc_time, to_local_time
+from app import socketio
 
 discharge_bp = Blueprint('discharge', __name__)
 
@@ -142,6 +143,26 @@ def api_discharge():
         
         db.session.add(discharge)
         db.session.commit()
+        
+        # Emit bed_stats_update for real-time dashboard update
+        hospital_stats = {
+            'hospital_id': hospital.id,
+            'total_beds': hospital.total_beds,
+            'available_beds': hospital.available_beds,
+        }
+        hospitals_data = [{
+            'id': h.id,
+            'name': h.name,
+            'lat': h.latitude,
+            'lng': h.longitude,
+            'level': h.level,
+            'beds': h.total_beds,
+            'available': h.available_beds
+        } for h in Hospital.query.all()]
+        socketio.emit('bed_stats_update', {
+            'hospital_stats': hospital_stats,
+            'hospitals': hospitals_data
+        })
         
         return jsonify({
             'success': True,
