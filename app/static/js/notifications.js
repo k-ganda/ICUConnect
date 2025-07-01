@@ -571,6 +571,22 @@ socket.on('referral_response', function (response) {
 	}
 });
 
+socket.on('bed_stats_update', function (data) {
+	console.log('bed_stats_update received:', data);
+	// Only update cards if this is the current hospital
+	if (
+		typeof window.updateBedStatsCards === 'function' &&
+		window.currentHospitalId &&
+		data.hospital_stats &&
+		data.hospital_stats.hospital_id == window.currentHospitalId
+	) {
+		window.updateBedStatsCards(data.hospital_stats);
+	}
+	if (typeof window.updateMapPins === 'function') {
+		window.updateMapPins(data.hospitals);
+	}
+});
+
 document.addEventListener('DOMContentLoaded', function () {
 	loadUserSettings();
 	setupGlobalReferralModalListeners();

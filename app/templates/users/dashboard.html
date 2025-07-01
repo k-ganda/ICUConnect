@@ -550,40 +550,42 @@
 	        Object.values(hospitalMarkers).forEach(marker => map.removeLayer(marker));
 	    }
 	    hospitalMarkers = {};
-	    hospitals.forEach(hospital => {
-	        if (!hospital.lat || !hospital.lng) return;
-	        const color = getAvailabilityColor(hospital.available, hospital.beds);
-	        const icon = createHospitalIcon(color, hospital.available);
-	        const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
-	            .bindPopup(`
-	                <div class="hospital-popup">
-	                    <h6><strong>${hospital.name}</strong></h6>
-	                    ${hospital.level ? `<p>Level: <strong>${hospital.level}</strong></p>` : ''}
-	                    <p>Total Beds: <strong>${hospital.beds}</strong></p>
-	                    <p>Available: <strong>${hospital.available}</strong></p>
-	                    <button class="btn btn-sm btn-primary mt-2 w-100 select-hospital-btn"
-	                            data-hospital-id="${hospital.id}"
-	                            data-hospital-name="${hospital.name}">
-	                        Select for Referral
-	                    </button>
-	                </div>
-	            `);
-	        marker.on('popupopen', function() {
-	            document.querySelector('.select-hospital-btn').addEventListener('click', function() {
-	                const hospitalId = this.dataset.hospitalId;
-	                const hospitalName = this.dataset.hospitalName;
-	                document.getElementById('targetHospitalId').value = hospitalId;
-	                document.getElementById('selectedHospitalName').textContent = hospitalName;
-	                document.getElementById('selectedHospitalDisplay').style.display = 'block';
-	                document.getElementById('referralFormCard').style.display = 'block';
-	                document.getElementById('referralFormCard').scrollIntoView({
-	                    behavior: 'smooth',
-	                    block: 'start'
+	    hospitals
+	        .filter(hospital => String(hospital.id) !== String(window.currentHospitalId))
+	        .forEach(hospital => {
+	            if (!hospital.lat || !hospital.lng) return;
+	            const color = getAvailabilityColor(hospital.available, hospital.beds);
+	            const icon = createHospitalIcon(color, hospital.available);
+	            const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
+	                .bindPopup(`
+	                    <div class="hospital-popup">
+	                        <h6><strong>${hospital.name}</strong></h6>
+	                        ${hospital.level ? `<p>Level: <strong>${hospital.level}</strong></p>` : ''}
+	                        <p>Total Beds: <strong>${hospital.beds}</strong></p>
+	                        <p>Available: <strong>${hospital.available}</strong></p>
+	                        <button class="btn btn-sm btn-primary mt-2 w-100 select-hospital-btn"
+	                                data-hospital-id="${hospital.id}"
+	                                data-hospital-name="${hospital.name}">
+	                            Select for Referral
+	                        </button>
+	                    </div>
+	                `);
+	            marker.on('popupopen', function() {
+	                document.querySelector('.select-hospital-btn').addEventListener('click', function() {
+	                    const hospitalId = this.dataset.hospitalId;
+	                    const hospitalName = this.dataset.hospitalName;
+	                    document.getElementById('targetHospitalId').value = hospitalId;
+	                    document.getElementById('selectedHospitalName').textContent = hospitalName;
+	                    document.getElementById('selectedHospitalDisplay').style.display = 'block';
+	                    document.getElementById('referralFormCard').style.display = 'block';
+	                    document.getElementById('referralFormCard').scrollIntoView({
+	                        behavior: 'smooth',
+	                        block: 'start'
+	                    });
 	                });
 	            });
+	            hospitalMarkers[hospital.id] = marker;
 	        });
-	        hospitalMarkers[hospital.id] = marker;
-	    });
 	}
 </script>
 

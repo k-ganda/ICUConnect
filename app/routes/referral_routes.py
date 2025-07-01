@@ -219,6 +219,27 @@ def respond_to_referral():
             print("Emitting transfer_status_update:", transfer_data)
             socketio.emit('transfer_status_update', transfer_data)
             print("Emitted transfer_status_update")
+
+            # Emit bed_stats_update for real-time dashboard update
+            target_hospital = Hospital.query.get(referral.target_hospital_id)
+            hospital_stats = {
+                'hospital_id': target_hospital.id,
+                'total_beds': target_hospital.total_beds,
+                'available_beds': target_hospital.available_beds,
+            }
+            hospitals_data = [{
+                'id': h.id,
+                'name': h.name,
+                'lat': h.latitude,
+                'lng': h.longitude,
+                'level': h.level,
+                'beds': h.total_beds,
+                'available': h.available_beds
+            } for h in Hospital.query.all()]
+            socketio.emit('bed_stats_update', {
+                'hospital_stats': hospital_stats,
+                'hospitals': hospitals_data
+            })
         elif response_type == 'reject':
             referral.status = 'Rejected'
             referral.responded_at = datetime.utcnow()
