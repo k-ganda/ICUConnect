@@ -104,7 +104,7 @@ def update_transfer_status():
 
         
         db.session.commit()
-        
+        db.session.expire_all()
         # Send notification to referring hospital
         send_admission_notification(transfer)
         

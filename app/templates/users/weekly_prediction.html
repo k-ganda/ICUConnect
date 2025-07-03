@@ -1,0 +1,246 @@
+{% extends 'users/base.html' %} {% block title %}Weekly Prediction{% endblock %}
+{% block content %}
+<div class="container py-4">
+	<!-- Prediction Button (left-aligned) -->
+	<div class="mb-3">
+		<button class="btn btn-primary" id="generatePredictionBtn">
+			Generate Weekly Prediction
+		</button>
+	</div>
+	<!-- Cards Row -->
+	<div class="row mb-4">
+		<div class="col-md-4">
+			<div class="card shadow-sm mb-3 dashboard-summary-card">
+				<div
+					class="card-body text-center d-flex flex-column justify-content-center align-items-center h-100">
+					<div class="card-title h6">Current Occupancy</div>
+					<div class="display-4 fw-bold" id="currentOccValue">--%</div>
+					<div class="text-muted" id="currentOccBeds">(--/-- beds)</div>
+					<div class="small" id="currentOccWeek">Week of --</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="card shadow-sm mb-3 dashboard-summary-card">
+				<div
+					class="card-body text-center d-flex flex-column justify-content-center align-items-center h-100">
+					<div class="card-title h6">Next Week's Predicted Occupancy</div>
+					<div class="display-4 fw-bold" id="nextOccValue">--%</div>
+					<div class="text-muted" id="nextOccBeds">(--/-- beds)</div>
+					<div class="small" id="nextOccWeek">Week of --</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="card shadow-sm mb-3 dashboard-summary-card">
+				<div
+					class="card-body text-center d-flex flex-column justify-content-center align-items-center h-100">
+					<div class="card-title h6" id="statusCardTitle">Status</div>
+					<div
+						class="display-4 fw-bold d-flex align-items-center justify-content-center"
+						id="surgeStatus">
+						<span class="surge-alert-text" style="color: #222">--</span>
+					</div>
+					<div class="status-desc-text" id="statusDesc">--</div>
+					<div
+						class="alert alert-danger mt-2 py-2 w-100 text-center status-advice-box"
+						id="statusAdvice"
+						style="display: none">
+						Please prepare additional resources and staff for increased ICU
+						demand.
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Distribution & Metrics Row (equal height) -->
+	<div class="row metrics-distribution-row mb-4">
+		<div class="col-md-6 d-flex">
+			<div class="card shadow-sm mb-3 flex-fill">
+				<div class="card-body d-flex flex-column justify-content-center h-100">
+					<div class="row align-items-center h-100">
+						<div class="col-12">
+							<h5 class="mb-3">Weekly Occupancy Distribution</h5>
+						</div>
+						<div class="col-12">
+							<div style="height: 220px; display: flex; align-items: center">
+								<canvas
+									id="distChart"
+									style="
+										width: 100% !important;
+										height: 200px !important;
+									"></canvas>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6 d-flex">
+			<div class="card shadow-sm mb-3 flex-fill">
+				<div class="card-body d-flex flex-column justify-content-center">
+					<h5 class="mb-3">Prediction Metrics</h5>
+					<div class="row g-3">
+						<div class="col-6">
+							<div class="bg-light rounded p-3 text-center">
+								<div class="h2 mb-0" id="maeValue">--%</div>
+								<div class="small text-muted">Mean Absolute Error</div>
+							</div>
+						</div>
+						<div class="col-6">
+							<div class="bg-light rounded p-3 text-center">
+								<div class="h2 mb-0" id="rmseValue">--%</div>
+								<div class="small text-muted">RMSE</div>
+							</div>
+						</div>
+						<div class="col-6">
+							<div class="bg-light rounded p-3 text-center">
+								<div class="h2 mb-0" id="accValue">--%</div>
+								<div class="small text-muted">Accuracy within ±5%</div>
+							</div>
+						</div>
+						<div class="col-6">
+							<div class="bg-light rounded p-3 text-center">
+								<div class="h2 mb-0" id="surgeDetValue">--%</div>
+								<div class="small text-muted">Surge Detection Rate</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Trend Chart -->
+	<div class="card shadow-sm mb-4">
+		<div class="card-body">
+			<h5 class="mb-3">Weekly ICU Occupancy Trend &amp; Forecast</h5>
+			<canvas id="trendChart" height="80"></canvas>
+		</div>
+	</div>
+	<!-- Model Explanation -->
+	<div class="card shadow-sm mb-4">
+		<div class="card-body">
+			<h3>About the Prediction Model</h3>
+			<div>
+				<strong>What These Predictions Mean</strong>
+				<p>
+					The ICU occupancy prediction provides a 7-day forecast of expected bed
+					utilization based on historical patterns and current trends. This
+					helps hospital administrators prepare for potential capacity issues
+					and allocate resources efficiently.
+				</p>
+				<ul>
+					<li>
+						<strong>Normal Capacity (&lt; 80%)</strong>: Current resources
+						should be sufficient
+					</li>
+					<li>
+						<strong>Surge Alert (&ge; 80%)</strong>: Additional resources and
+						staffing may be required
+					</li>
+				</ul>
+			</div>
+			<div>
+				<strong>Prediction Formula</strong>
+				<div class="bg-light rounded p-3 mb-2">
+					<code>
+						Hospital_Forecast = System_Forecast × (Hospital_Beds ÷ System_Beds)
+						× Hospital_Adjustment_Factor
+						<br />
+						<span class="small text-muted"
+							>Where Hospital_Adjustment_Factor accounts for hospital-specific
+							historical occupancy patterns</span
+						>
+					</code>
+				</div>
+			</div>
+			<h5 class="mt-4">How Predictions Are Used</h5>
+			<div class="prediction-usage-row">
+				<div class="prediction-usage-box prediction-usage-current">
+					<h6>Current Implementation</h6>
+					<ul>
+						<li>Manual prediction generation</li>
+						<li>Hospital-specific forecasts derived from system-wide model</li>
+						<li>Used for weekly resource planning</li>
+						<li>Surge alerts trigger resource allocation reviews</li>
+					</ul>
+				</div>
+				<div class="prediction-usage-box prediction-usage-future">
+					<h6>Future Implementation</h6>
+					<ul>
+						<li>Automated weekly forecasts (Sundays at 11:59 PM)</li>
+						<li>Direct database integration</li>
+						<li>Automatic model retraining based on new data</li>
+						<li>Hospital-specific models for improved accuracy</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+	function formatPercent(val) {
+		return val !== null && val !== undefined ? Math.round(val) + '%' : '--%';
+	}
+	function formatBeds(occ, total) {
+		return `(${occ}/${total} beds)`;
+	}
+	function formatWeek(start, end) {
+		return `Week of ${start} - ${end}`;
+	}
+
+	const hospitalId = {{ hospital.id }};
+
+	// On page load, fetch current occupancy
+	fetch(`/api/current_occupancy?hospital_id=${hospitalId}`)
+		.then(res => res.json())
+		.then(data => {
+			document.getElementById('currentOccValue').textContent = formatPercent(data.percent);
+			document.getElementById('currentOccBeds').textContent = formatBeds(data.occupied, data.total);
+			document.getElementById('currentOccWeek').textContent = formatWeek(data.week_start, data.week_end);
+			// Reset status card to default
+			document.getElementById('surgeStatus').innerHTML = '<span class="surge-alert-text" style="color: #222;">--</span>';
+			document.getElementById('statusDesc').textContent = '--';
+			document.getElementById('statusAdvice').style.display = 'none';
+		});
+
+	// On button click, fetch prediction and update only next week and status cards
+	function updatePredictionCards(data) {
+		document.getElementById('nextOccValue').textContent = formatPercent(data.proportional_percent || data.predicted_percent);
+		document.getElementById('nextOccBeds').textContent = formatBeds(data.proportional_occupied || data.predicted_occupied, data.total || data.hospital_capacity);
+		document.getElementById('nextOccWeek').textContent = formatWeek(data.predicted_week_start, data.predicted_week_end);
+		// Status card
+		const surgeStatus = document.getElementById('surgeStatus');
+		const statusAdvice = document.getElementById('statusAdvice');
+		if ((data.proportional_surge_alert !== undefined ? data.proportional_surge_alert : data.surge_alert)) {
+			surgeStatus.innerHTML = '<i class="fas fa-circle" style="color:#e53935;font-size:1.1rem;vertical-align:middle;"></i> <span class="surge-alert-text" style="color:#e53935;">SURGE ALERT</span>';
+			surgeStatus.classList.add('surge-active');
+			statusAdvice.classList.add('surge-animate-advice');
+			document.getElementById('statusDesc').textContent = 'Predicted occupancy exceeds 80% threshold';
+			statusAdvice.style.display = '';
+			statusAdvice.textContent = 'Please prepare additional resources and staff for increased ICU demand.';
+		} else {
+			surgeStatus.innerHTML = '<i class="fas fa-circle" style="color:#43a047;font-size:1.1rem;vertical-align:middle;"></i> <span class="surge-alert-text" style="color:#43a047;">NORMAL CAPACITY</span>';
+			surgeStatus.classList.remove('surge-active');
+			statusAdvice.classList.remove('surge-animate-advice');
+			document.getElementById('statusDesc').textContent = 'No action required';
+			statusAdvice.style.display = 'none';
+		}
+	}
+
+	document.getElementById('generatePredictionBtn').addEventListener('click', function() {
+		fetch('/api/predict/occupancy', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ weeks_ahead: 1, hospital_id: hospitalId })
+		})
+		.then(res => res.json())
+		.then(data => {
+			updatePredictionCards(data);
+			document.getElementById('statusCardTitle').style.display = 'none';
+		});
+	});
+</script>
+{% endblock %}

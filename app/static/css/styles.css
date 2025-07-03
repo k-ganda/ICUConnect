@@ -1222,3 +1222,487 @@ body {
 #sidebar.collapsed + #content {
 	margin-left: 60px;
 }
+
+/* Weekly Prediction page */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+.weekly-prediction-dashboard {
+	font-family: 'Montserrat', Arial, sans-serif;
+	background: #f6f8fb;
+	min-height: 100vh;
+	padding: 40px 0;
+}
+.dashboard-btn {
+	background: #2563eb;
+	color: #fff;
+	font-size: 1.25rem;
+	font-weight: 700;
+	border-radius: 1.5rem;
+	padding: 1rem 2.5rem;
+	border: none;
+	margin-bottom: 2rem;
+	box-shadow: 0 2px 8px rgba(60, 72, 88, 0.1);
+	transition: background 0.2s;
+}
+.dashboard-btn:hover {
+	background: #1e40af;
+}
+.dashboard-card {
+	background: #fff;
+	border-radius: 1.5rem;
+	box-shadow: 0 4px 24px rgba(60, 72, 88, 0.1);
+	padding: 2rem 2rem 1.5rem 2rem;
+	margin-bottom: 2rem;
+	border: none;
+	min-height: 220px;
+	max-height: 260px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+.dashboard-card.status {
+	border: 2px solid #e53935;
+}
+.dashboard-card .card-title {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: #222;
+}
+.dashboard-card .main-value {
+	font-size: 2.8rem;
+	font-weight: 700;
+	color: #2563eb;
+	margin-bottom: 0.25rem;
+}
+.dashboard-card .main-value.red {
+	color: #e53935;
+}
+.dashboard-card .main-value.green {
+	color: #43a047;
+}
+.dashboard-card .sub-value {
+	font-size: 1.1rem;
+	color: #888;
+}
+.dashboard-card .card-desc {
+	font-size: 1rem;
+	color: #555;
+}
+.dashboard-card .alert-surge {
+	background: #ffebee;
+	color: #e53935;
+	border-radius: 0.75rem;
+	padding: 0.75rem 1rem;
+	margin-top: 0.5rem;
+	font-weight: 600;
+	border: 1px solid #ffcdd2;
+}
+.chart-container {
+	background: #fff;
+	border-radius: 1.5rem;
+	box-shadow: 0 4px 24px rgba(60, 72, 88, 0.1);
+	padding: 2rem;
+	margin-bottom: 2rem;
+}
+.metric-box {
+	background: #fff;
+	border-radius: 1rem;
+	box-shadow: 0 2px 8px rgba(60, 72, 88, 0.1);
+	padding: 1.5rem 1rem;
+	text-align: center;
+	margin-bottom: 1rem;
+}
+.metric-box .metric-value {
+	font-size: 2rem;
+	font-weight: 700;
+	color: #2563eb;
+}
+.metric-box .metric-label {
+	font-size: 1.1rem;
+	color: #555;
+	margin-top: 0.25rem;
+}
+.info-section {
+	background: #fff;
+	border-radius: 1.5rem;
+	box-shadow: 0 4px 24px rgba(60, 72, 88, 0.1);
+	padding: 2rem 2rem 1.5rem 2rem;
+	margin-bottom: 2rem;
+}
+.info-section h4 {
+	font-weight: 700;
+	color: #222;
+	margin-bottom: 1rem;
+}
+.info-section code {
+	display: block;
+	background: #f3f6fa;
+	border-radius: 0.5rem;
+	padding: 1rem;
+	margin: 1rem 0;
+	color: #222;
+	font-size: 1.1rem;
+}
+.info-box {
+	background: #e3f0ff;
+	border-radius: 1rem;
+	padding: 1rem 1.5rem;
+	margin-bottom: 1rem;
+	color: #1a237e;
+	font-size: 1rem;
+}
+.info-box.future {
+	background: #f3e8ff;
+	color: #6d28d9;
+}
+@media (max-width: 991px) {
+	.dashboard-row {
+		flex-direction: column;
+	}
+	.dashboard-card {
+		margin-bottom: 1.5rem;
+	}
+}
+
+/* Equal height for metrics and distribution cards */
+.metrics-distribution-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+}
+.metrics-distribution-row .card {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+.metrics-distribution-row .card-body {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+/* Prediction Usage Boxes */
+.prediction-usage-box {
+	background: #eaf2fd;
+	border-radius: 1rem;
+	padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+	margin-bottom: 1rem;
+	color: #222;
+	min-height: 200px;
+}
+.prediction-usage-current h6,
+.prediction-usage-future h6 {
+	color: #6d8bcd;
+	font-weight: 700;
+	margin-bottom: 1rem;
+}
+.prediction-usage-future {
+	background: #ede7fb;
+}
+@media (min-width: 768px) {
+	.prediction-usage-row {
+		display: flex;
+		gap: 1.5rem;
+	}
+	.prediction-usage-box {
+		margin-bottom: 0;
+		width: 100%;
+	}
+}
+
+/* Ensure status card has consistent height */
+.weekly-prediction-dashboard .card .card-body.text-center {
+	min-height: 170px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.status-card {
+	height: 100%;
+	min-height: 220px;
+	max-height: 260px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+.status-card .card-body {
+	min-height: 170px;
+	max-height: 220px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	padding: 1.2rem 0.7rem 0.7rem 0.7rem;
+}
+.status-card .status-main {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+#statusAdvice {
+	width: 100%;
+}
+
+/* --- Surge Alert Blinking Animation (slower) --- */
+@keyframes surge-blink {
+	0% {
+		opacity: 0.5;
+		filter: blur(1px);
+	}
+	40% {
+		opacity: 1;
+		filter: blur(0);
+	}
+	60% {
+		opacity: 1;
+		filter: blur(0);
+	}
+	100% {
+		opacity: 0.5;
+		filter: blur(1px);
+	}
+}
+
+.surge-active,
+.surge-animate-advice {
+	animation: surge-blink 2s infinite;
+	transition: opacity 0.2s, filter 0.2s;
+}
+
+/* --- Status Card Consistent Height & Centering --- */
+.status-card {
+	height: 100%;
+	min-height: 220px;
+	max-height: 260px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+.status-card .card-body {
+	min-height: 170px;
+	max-height: 220px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	padding: 1.2rem 0.7rem 0.7rem 0.7rem;
+}
+.status-card .status-main {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	min-height: 0;
+}
+
+/* --- Surge Alert Visuals --- */
+#surgeStatus {
+	font-size: 1.7rem !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+}
+#surgeStatus .fa-circle {
+	font-size: 2.2rem !important;
+	margin-right: 0.5rem;
+	vertical-align: middle;
+}
+
+/* --- Status Description --- */
+#statusDesc {
+	font-size: 1.1rem;
+	font-weight: 500;
+	color: #e57373;
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+	text-align: center;
+}
+
+/* --- Advice Box --- */
+#statusAdvice {
+	background: #ffebee !important;
+	color: #c62828 !important;
+	border: 1px solid #ffcdd2 !important;
+	border-radius: 12px !important;
+	font-size: 1.05rem;
+	font-weight: 500;
+	margin-top: 0.7rem;
+	padding: 0.7rem 0.8rem;
+	text-align: left;
+	box-shadow: 0 2px 8px rgba(229, 57, 53, 0.04);
+	max-width: 100%;
+	overflow-wrap: break-word;
+	min-height: 0;
+}
+
+/* Responsive fix for status card */
+@media (max-width: 991px) {
+	.status-card {
+		min-height: 180px;
+		max-height: 220px;
+	}
+	.status-card .card-body {
+		min-height: 120px;
+		max-height: 180px;
+		padding: 0.7rem 0.4rem 0.4rem 0.4rem;
+	}
+	#surgeStatus {
+		font-size: 1.2rem !important;
+	}
+	#surgeStatus .fa-circle {
+		font-size: 1.3rem !important;
+	}
+	#statusDesc {
+		font-size: 0.97rem;
+	}
+	#statusAdvice {
+		font-size: 0.97rem;
+		padding: 0.5rem 0.5rem;
+	}
+}
+
+/* Unify card heights for status and occupancy cards */
+.dashboard-card,
+.status-card {
+	min-height: 220px;
+	max-height: 260px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+.dashboard-card .card-body,
+.status-card .card-body {
+	min-height: 170px;
+	max-height: 220px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	padding: 1.2rem 0.7rem 0.7rem 0.7rem;
+}
+
+@media (max-width: 991px) {
+	.dashboard-card,
+	.status-card {
+		min-height: 180px;
+		max-height: 220px;
+	}
+	.dashboard-card .card-body,
+	.status-card .card-body {
+		min-height: 120px;
+		max-height: 180px;
+		padding: 0.7rem 0.4rem 0.4rem 0.4rem;
+	}
+}
+
+/* Dashboard summary cards unified style */
+.dashboard-summary-card {
+	min-height: 220px;
+	max-height: 260px;
+	border-radius: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+}
+.dashboard-summary-card .card-body {
+	min-height: 170px;
+	max-height: 220px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	padding: 1.2rem 0.7rem 0.7rem 0.7rem;
+}
+@media (max-width: 991px) {
+	.dashboard-summary-card {
+		min-height: 180px;
+		max-height: 220px;
+	}
+	.dashboard-summary-card .card-body {
+		min-height: 120px;
+		max-height: 180px;
+		padding: 0.7rem 0.4rem 0.4rem 0.4rem;
+	}
+}
+
+/* Center and resize Surge Alert/Normal Capacity and status description in status card */
+.surge-alert-text {
+	font-size: 1.1rem;
+	font-weight: 700;
+	margin-left: 0.4rem;
+}
+#surgeStatus {
+	min-height: 2.5em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+#surgeStatus .fa-circle {
+	font-size: 1.4rem !important;
+	margin-right: 0.5rem;
+	vertical-align: middle;
+}
+.status-desc-text {
+	font-size: 0.2rem;
+	font-weight: 400;
+	color: #e57373;
+	margin-top: 0.3rem;
+	margin-bottom: 0.3rem;
+	text-align: center;
+}
+.status-advice-box {
+	font-size: 0.85rem;
+	font-weight: 400;
+	padding: 0.5rem 0.5rem;
+	border-radius: 12px;
+	max-width: 100%;
+	word-break: break-word;
+	margin-top: 0.5rem;
+	box-sizing: border-box;
+}
+@media (max-width: 991px) {
+	.surge-alert-text {
+		font-size: 0.92rem;
+	}
+	#surgeStatus {
+		font-size: 0.92rem !important;
+	}
+	#surgeStatus .fa-circle {
+		font-size: 0.92rem !important;
+	}
+	.status-desc-text {
+		font-size: 0.85rem;
+	}
+	.status-advice-box {
+		font-size: 0.85rem;
+		padding: 0.4rem 0.4rem;
+	}
+}
+
+/* Align dashboard summary card titles */
+.dashboard-summary-card .card-title {
+	font-size: 1.1rem;
+	font-weight: 600;
+	margin-bottom: 0.7rem;
+	margin-top: 0;
+	text-align: center;
+	min-height: 1.5em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}

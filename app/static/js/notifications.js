@@ -522,13 +522,32 @@ socket.on('transfer_status_update', function (transfer) {
 	// Also update dashboard if function is available
 	if (typeof window.loadActiveTransfers === 'function') {
 		if (transfer.status === 'Admitted') {
-			setTimeout(() => window.loadActiveTransfers(), 1500);
+			// Polling approach: try every 500ms for up to 3 seconds
+			let attempts = 0;
+			const maxAttempts = 6;
+			const poll = () => {
+				window.loadActiveTransfers();
+				attempts++;
+				// Check if transfer is still present after a short delay
+				setTimeout(() => {
+					// activeTransfers is global in dashboard.html
+					const stillPresent =
+						window.activeTransfers &&
+						window.activeTransfers.some(
+							(tr) => tr.id == transfer.id && tr.status === 'En Route'
+						);
+					if (stillPresent && attempts < maxAttempts) {
+						poll();
+					}
+				}, 300);
+			};
+			poll();
 		} else {
 			window.loadActiveTransfers();
 		}
 	} else if (transfer.status === 'Admitted') {
 		// Fallback: force reload if admitted and function not available
-		setTimeout(() => window.location.reload(), 1500);
+		setTimeout(() => window.location.reload(), 2000);
 	}
 });
 

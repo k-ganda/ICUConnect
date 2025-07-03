@@ -159,9 +159,14 @@ document.addEventListener('DOMContentLoaded', function () {
 									arrival_notes: '',
 								}),
 							}).then(() => {
-								// Removed duplicate notification here. The real-time notification will be handled by notifications.js
-								url.searchParams.delete('transfer_id');
-								window.location.replace(url.toString());
+								// Removed window.location.replace to allow real-time update to work
+								if (window.showToast) {
+									window.showToast(
+										'Patient admitted and transfer updated!',
+										'success'
+									);
+								}
+								// Optionally, you could close the form or show a message here
 							});
 						} else {
 							// Add notification for regular admission

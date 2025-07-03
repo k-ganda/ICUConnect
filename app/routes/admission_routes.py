@@ -187,6 +187,7 @@ def admit_patient():
         bed.is_occupied = True
         db.session.add(admission)
         db.session.commit()
+        db.session.expire_all()
 
         # Emit bed_stats_update for real-time dashboard update
         hospital_stats = {

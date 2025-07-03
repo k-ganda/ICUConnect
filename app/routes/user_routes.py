@@ -145,3 +145,11 @@ def test_notification():
         'success': True,
         'message': 'Test notification sent'
     })
+
+@user_bp.route('/weekly-prediction')
+@login_required
+def weekly_prediction():
+    if isinstance(current_user, Admin):
+        abort(403)
+    hospital = Hospital.query.get(current_user.hospital_id)
+    return render_template('users/weekly_prediction.html', hospital=hospital)

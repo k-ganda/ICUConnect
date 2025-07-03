@@ -436,9 +436,12 @@
 	    const container = document.getElementById('patientTransfersList');
 	    if (!container) return;
 
+	    console.log('[updateActiveTransfersList] activeTransfers:', activeTransfers);
+
 	    container.innerHTML = '';
 
 	    const enRouteTransfers = activeTransfers.filter(tr => tr.status === 'En Route');
+	    console.log('[updateActiveTransfersList] enRouteTransfers:', enRouteTransfers);
 	    if (enRouteTransfers.length === 0) {
 	        container.innerHTML = '<div class="p-3 text-muted">No active patient transfers</div>';
 	        return;
