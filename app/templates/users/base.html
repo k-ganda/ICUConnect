@@ -131,7 +131,7 @@
 							class="{% if request.endpoint == 'user.weekly_prediction' %}active{% endif %}">
 							<a href="{{ url_for('user.weekly_prediction') }}">
 								<i class="fas fa-chart-line"></i>
-								<span class="sidebar-label">Weekly Prediction</span>
+								<span class="sidebar-label">Predictions</span>
 							</a>
 						</li>
 						<li
@@ -178,9 +178,6 @@
 							<div id="datetime">{{ current_datetime() }}</div>
 						</div>
 						<div class="d-flex">
-							<button class="btn btn-outline-secondary me-2" id="searchBtn">
-								<i class="fas fa-search"></i>
-							</button>
 							<button
 								class="btn btn-outline-secondary me-2"
 								id="notificationCenterBtn"
@@ -192,13 +189,6 @@
 									style="display: none"
 									>0</span
 								>
-							</button>
-							<button
-								class="btn btn-outline-secondary"
-								id="icuPredictionBtn"
-								title="Predict ICU Occupancy">
-								<i class="fas fa-chart-line"></i>
-								<span class="badge bg-danger">Prediction</span>
 							</button>
 						</div>
 					</div>
@@ -219,32 +209,6 @@
 		<!-- Custom JS -->
 		<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 		{% block scripts %}{% endblock %}
-
-		<!-- ICU Prediction Modal -->
-		<div
-			class="modal fade"
-			id="icuPredictionModal"
-			tabindex="-1"
-			aria-labelledby="icuPredictionModalLabel"
-			aria-hidden="true">
-			<div class="modal-dialog">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title" id="icuPredictionModalLabel">
-							ICU Occupancy Prediction
-						</h5>
-						<button
-							type="button"
-							class="btn-close"
-							data-bs-dismiss="modal"
-							aria-label="Close"></button>
-					</div>
-					<div class="modal-body" id="icuPredictionResult">
-						<!-- Result will be injected here -->
-					</div>
-				</div>
-			</div>
-		</div>
 
 		<!-- Notification Center Modal -->
 		<div
@@ -337,52 +301,6 @@
 		<script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
 
 		<script>
-			document.getElementById('icuPredictionBtn').addEventListener('click', function() {
-			    // ICU bed capacity and hospital ID from Flask context
-			    const icuBedCapacity = {{ current_user.hospital.total_beds|default(20) }};
-			    const hospitalId = {{ current_user.hospital.id }};
-			    fetch('/api/predict/occupancy', {
-			        method: 'POST',
-			        headers: {
-			            'Content-Type': 'application/json'
-			        },
-			        body: JSON.stringify({
-			            weeks_ahead: 1,
-			            icu_bed_capacity: icuBedCapacity,
-			            hospital_id: hospitalId
-			        })
-			    })
-			    .then(response => response.json())
-			    .then(data => {
-			        let html = '';
-			        if (data.error) {
-			            html = `<div class="alert alert-danger">${data.error}</div>`;
-			        } else {
-			            html = `
-			                <div>
-			                    <strong>Prediction for ${data.dates[0]}:</strong>
-			                    <h3>${data.proportional_forecast !== undefined ? data.proportional_forecast : data.predictions[0]}</h3>
-			                </div>
-			                <div class="mt-3">
-			                    <strong>Status:</strong>
-			                    ${(data.proportional_surge_alert !== undefined ? data.proportional_surge_alert : data.surge_alert) ?
-			                        '<span class="badge bg-danger">Surge Alert</span>' :
-			                        '<span class="badge bg-success">Normal</span>'}
-			                </div>
-			                <div class="mt-2">${data.proportional_description !== undefined ? data.proportional_description : data.description}</div>
-			            `;
-			        }
-			        document.getElementById('icuPredictionResult').innerHTML = html;
-			        var myModal = new bootstrap.Modal(document.getElementById('icuPredictionModal'));
-			        myModal.show();
-			    })
-			    .catch(err => {
-			        document.getElementById('icuPredictionResult').innerHTML = `<div class="alert alert-danger">Error: ${err}</div>`;
-			        var myModal = new bootstrap.Modal(document.getElementById('icuPredictionModal'));
-			        myModal.show();
-			    });
-			});
-
 			// Sidebar and mobile menu logic
 			document.addEventListener('DOMContentLoaded', function () {
 				const sidebar = document.getElementById('sidebar');
@@ -397,9 +315,11 @@
 				}
 
 				// Responsive sidebar toggle for mobile
-				const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+				const mobileSidebarToggle = document.getElementById(
+					'mobileSidebarToggle'
+				);
 				if (mobileSidebarToggle) {
-					mobileSidebarToggle.addEventListener('click', function(e) {
+					mobileSidebarToggle.addEventListener('click', function (e) {
 						e.preventDefault();
 						sidebar.classList.toggle('active');
 						// Optionally add an overlay
@@ -415,7 +335,7 @@
 							overlay.style.background = 'rgba(0,0,0,0.3)';
 							overlay.style.zIndex = 1999;
 							document.body.appendChild(overlay);
-							overlay.addEventListener('click', function() {
+							overlay.addEventListener('click', function () {
 								sidebar.classList.remove('active');
 								document.body.removeChild(overlay);
 							});
@@ -426,7 +346,7 @@
 				}
 
 				// Hide sidebar and overlay on resize if desktop
-				window.addEventListener('resize', function() {
+				window.addEventListener('resize', function () {
 					if (window.innerWidth > 768) {
 						sidebar.classList.remove('active');
 						const overlay = document.getElementById('sidebarOverlay');
@@ -440,7 +360,7 @@
 			let unreadCount = 0;
 
 			// Initialize notification center
-			document.addEventListener('DOMContentLoaded', function() {
+			document.addEventListener('DOMContentLoaded', function () {
 				loadNotifications();
 				setupNotificationCenterListeners();
 				updateNotificationBadge();
@@ -451,14 +371,14 @@
 				const saved = localStorage.getItem('icuNotifications');
 				if (saved) {
 					notifications = JSON.parse(saved);
-					unreadCount = notifications.filter(n => !n.read).length;
+					unreadCount = notifications.filter((n) => !n.read).length;
 				}
 			}
 
 			// Save notifications to localStorage
 			function saveNotifications() {
 				localStorage.setItem('icuNotifications', JSON.stringify(notifications));
-				unreadCount = notifications.filter(n => !n.read).length;
+				unreadCount = notifications.filter((n) => !n.read).length;
 				updateNotificationBadge();
 			}
 
@@ -471,11 +391,12 @@
 					message: message,
 					timestamp: new Date().toISOString(),
 					read: false,
-					data: data
+					data: data,
 				};
 
 				notifications.unshift(notification);
-				if (notifications.length > 100) { // Keep only last 100 notifications
+				if (notifications.length > 100) {
+					// Keep only last 100 notifications
 					notifications = notifications.slice(0, 100);
 				}
 
@@ -483,7 +404,9 @@
 				renderNotifications();
 
 				// Show notification center button if modal is open
-				const modal = bootstrap.Modal.getInstance(document.getElementById('notificationCenterModal'));
+				const modal = bootstrap.Modal.getInstance(
+					document.getElementById('notificationCenterModal')
+				);
 				if (modal && modal._isShown) {
 					renderNotifications();
 				}
@@ -492,21 +415,27 @@
 			// Render notifications in the modal
 			function renderNotifications() {
 				const container = document.getElementById('notificationsList');
-				const typeFilter = document.getElementById('notificationTypeFilter').value;
-				const statusFilter = document.getElementById('notificationStatusFilter').value;
+				const typeFilter = document.getElementById(
+					'notificationTypeFilter'
+				).value;
+				const statusFilter = document.getElementById(
+					'notificationStatusFilter'
+				).value;
 
 				let filteredNotifications = notifications;
 
 				// Apply type filter
 				if (typeFilter !== 'all') {
-					filteredNotifications = filteredNotifications.filter(n => n.type === typeFilter);
+					filteredNotifications = filteredNotifications.filter(
+						(n) => n.type === typeFilter
+					);
 				}
 
 				// Apply status filter
 				if (statusFilter === 'unread') {
-					filteredNotifications = filteredNotifications.filter(n => !n.read);
+					filteredNotifications = filteredNotifications.filter((n) => !n.read);
 				} else if (statusFilter === 'read') {
-					filteredNotifications = filteredNotifications.filter(n => n.read);
+					filteredNotifications = filteredNotifications.filter((n) => n.read);
 				}
 
 				if (filteredNotifications.length === 0) {
@@ -519,14 +448,17 @@
 					return;
 				}
 
-				container.innerHTML = filteredNotifications.map(notification => {
-					const icon = getNotificationIcon(notification.type);
-					const color = getNotificationColor(notification.type);
-					const timeAgo = getTimeAgo(notification.timestamp);
-					const readClass = notification.read ? 'opacity-75' : 'fw-bold';
+				container.innerHTML = filteredNotifications
+					.map((notification) => {
+						const icon = getNotificationIcon(notification.type);
+						const color = getNotificationColor(notification.type);
+						const timeAgo = getTimeAgo(notification.timestamp);
+						const readClass = notification.read ? 'opacity-75' : 'fw-bold';
 
-					return `
-						<div class="notification-item p-3 border-bottom ${readClass}" data-notification-id="${notification.id}">
+						return `
+						<div class="notification-item p-3 border-bottom ${readClass}" data-notification-id="${
+							notification.id
+						}">
 							<div class="d-flex align-items-start">
 								<div class="notification-icon me-3">
 									<i class="fas ${icon} fa-lg text-${color}"></i>
@@ -538,44 +470,56 @@
 									</div>
 									<p class="mb-1 text-muted">${notification.message}</p>
 									<div class="d-flex justify-content-between align-items-center">
-										<small class="badge bg-${color} bg-opacity-10 text-${color}">${notification.type}</small>
+										<small class="badge bg-${color} bg-opacity-10 text-${color}">${
+							notification.type
+						}</small>
 										${!notification.read ? '<span class="badge bg-primary">New</span>' : ''}
 									</div>
 								</div>
 							</div>
 						</div>
 					`;
-				}).join('');
+					})
+					.join('');
 
 				// Add click listeners to mark as read
-				container.querySelectorAll('.notification-item').forEach(item => {
-					item.addEventListener('click', function() {
+				container.querySelectorAll('.notification-item').forEach((item) => {
+					item.addEventListener('click', function () {
 						const notificationId = parseInt(this.dataset.notificationId);
 						markNotificationAsRead(notificationId);
 					});
 				});
 
 				// Update notification count
-				document.getElementById('notificationCount').textContent = filteredNotifications.length;
+				document.getElementById('notificationCount').textContent =
+					filteredNotifications.length;
 			}
 
 			// Get notification icon based on type
 			function getNotificationIcon(type) {
-				switch(type) {
-					case 'referral': return 'fa-user-plus';
-					case 'transfer': return 'fa-ambulance';
-					case 'system': return 'fa-cog';
-					default: return 'fa-bell';
+				switch (type) {
+					case 'referral':
+						return 'fa-user-plus';
+					case 'transfer':
+						return 'fa-ambulance';
+					case 'system':
+						return 'fa-cog';
+					default:
+						return 'fa-bell';
 				}
 			}
 
 			// Get notification color based on type
 			function getNotificationColor(type) {
-				switch(type) {
-					case 'referral': return 'primary';
-					case 'transfer': return 'success';
-					case 'system': return 'warning';
-					default: return 'secondary';
+				switch (type) {
+					case 'referral':
+						return 'primary';
+					case 'transfer':
+						return 'success';
+					case 'system':
+						return 'warning';
+					default:
+						return 'secondary';
 				}
 			}
 
@@ -596,7 +540,7 @@
 
 			// Mark notification as read
 			function markNotificationAsRead(notificationId) {
-				const notification = notifications.find(n => n.id === notificationId);
+				const notification = notifications.find((n) => n.id === notificationId);
 				if (notification && !notification.read) {
 					notification.read = true;
 					saveNotifications();
@@ -606,7 +550,7 @@
 
 			// Mark all notifications as read
 			function markAllAsRead() {
-				notifications.forEach(n => n.read = true);
+				notifications.forEach((n) => (n.read = true));
 				saveNotifications();
 				renderNotifications();
 			}
@@ -634,31 +578,55 @@
 			// Setup notification center event listeners
 			function setupNotificationCenterListeners() {
 				// Notification center button
-				document.getElementById('notificationCenterBtn').addEventListener('click', function() {
-					const modal = new bootstrap.Modal(document.getElementById('notificationCenterModal'));
-					modal.show();
-					renderNotifications();
-				});
+				document
+					.getElementById('notificationCenterBtn')
+					.addEventListener('click', function () {
+						const modal = new bootstrap.Modal(
+							document.getElementById('notificationCenterModal')
+						);
+						modal.show();
+						renderNotifications();
+					});
 
 				// Mark all read button
-				document.getElementById('markAllReadBtn').addEventListener('click', markAllAsRead);
+				document
+					.getElementById('markAllReadBtn')
+					.addEventListener('click', markAllAsRead);
 
 				// Clear all button
-				document.getElementById('clearAllNotificationsBtn').addEventListener('click', clearAllNotifications);
+				document
+					.getElementById('clearAllNotificationsBtn')
+					.addEventListener('click', clearAllNotifications);
 
 				// Filter change listeners
-				document.getElementById('notificationTypeFilter').addEventListener('change', renderNotifications);
-				document.getElementById('notificationStatusFilter').addEventListener('change', renderNotifications);
+				document
+					.getElementById('notificationTypeFilter')
+					.addEventListener('change', renderNotifications);
+				document
+					.getElementById('notificationStatusFilter')
+					.addEventListener('change', renderNotifications);
 			}
 
 			// Make addNotification globally available
 			window.addNotification = addNotification;
 
 			// Test function for notifications (can be removed in production)
-			window.testNotification = function() {
-				addNotification('referral', 'Test Referral', 'This is a test referral notification');
-				addNotification('transfer', 'Test Transfer', 'This is a test transfer notification');
-				addNotification('system', 'Test System', 'This is a test system notification');
+			window.testNotification = function () {
+				addNotification(
+					'referral',
+					'Test Referral',
+					'This is a test referral notification'
+				);
+				addNotification(
+					'transfer',
+					'Test Transfer',
+					'This is a test transfer notification'
+				);
+				addNotification(
+					'system',
+					'Test System',
+					'This is a test system notification'
+				);
 			};
 		</script>
 

@@ -25,9 +25,4 @@ $(document).ready(function () {
 	$('#notificationsBtn').on('click', function () {
 		alert('Notifications will appear here');
 	});
-
-	// Search button
-	$('#searchBtn').on('click', function () {
-		alert('Search functionality coming soon');
-	});
 });

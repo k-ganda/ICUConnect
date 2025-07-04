@@ -8,6 +8,7 @@ from statsmodels.tsa.arima.model import ARIMAResults
 from app.models import Hospital, Bed, Admission, Discharge
 from sqlalchemy import func
 import json
+from app import db
 
 prediction_bp = Blueprint('prediction', __name__)
 
@@ -98,13 +99,17 @@ def predict_occupancy():
             proportional_threshold = 0.8 * hospital_capacity
             proportional_percent = round((proportional_occupied / hospital_capacity) * 100, 1) if hospital_capacity else 0
             proportional_surge_alert = proportional_forecast >= proportional_threshold
-            # Next week's range
-            today = datetime.now().date()
-            start_of_week = today - timedelta(days=today.weekday())
-            next_week_start = start_of_week + timedelta(days=7)
-            next_week_end = next_week_start + timedelta(days=6)
-            predicted_week_start = next_week_start.strftime('%b %d')
-            predicted_week_end = next_week_end.strftime('%b %d')
+            # Get the prediction week from the ARIMA model's forecast index
+            forecast = model.forecast(steps=1)
+            if hasattr(forecast, 'index') and len(forecast.index) > 0:
+                pred_week_end = forecast.index[0].date()
+                pred_week_start = pred_week_end - timedelta(days=6)
+                predicted_week_start = pred_week_start.strftime('%b %d, %Y')
+                predicted_week_end = pred_week_end.strftime('%b %d, %Y')
+            else:
+                # Hardcode the prediction week for now
+                predicted_week_start = 'Nov 17, 2024'
+                predicted_week_end = 'Nov 23, 2024'
             if proportional_surge_alert:
                 proportional_description = (
                     f"Surge Alert: Predicted ICU occupancy for hospital (ID {hospital_id}) is at or above 80% "
@@ -256,4 +261,143 @@ def current_occupancy():
         'total': total_beds,
         'week_start': start_of_week.strftime('%b %d'),
         'week_end': end_of_week.strftime('%b %d')
+    })
+
+@prediction_bp.route('/icu_trend', methods=['GET'])
+def icu_trend():
+    """Return historical and predicted weekly occupancy for a hospital, with actual week dates."""
+    from sqlalchemy import func
+    hospital_id = request.args.get('hospital_id', type=int)
+    if not hospital_id:
+        return jsonify({'error': 'hospital_id is required'}), 400
+    hospital = Hospital.query.get(hospital_id)
+    if not hospital:
+        return jsonify({'error': 'Hospital not found'}), 404
+
+    # Load weekly dates from ARIMA training data (Dataset1.xlsx)
+    dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'app', 'Dataset', 'Dataset1.xlsx')
+    df = pd.read_excel(dataset_path)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.set_index('date')
+    occ_col = 'total_ped_icu_patients' if 'total_ped_icu_patients' in df.columns else 'occupied_ped_icu_beds'
+    weekly_df = df[occ_col].resample('W-SUN').mean()
+    weekly_df = weekly_df[-4:]  
+    weekly_dates = weekly_df.index
+
+    level_weights = {2: 2.5, 3: 2.0, 4: 1.8, 5: 0.6, 6: 0.2}
+    weekly_occupancy = []
+    hospital_capacity = Bed.query.filter_by(hospital_id=hospital_id).count()
+    hospital_weight = level_weights.get(hospital.level, 1.0)
+    all_hospitals = Hospital.query.all()
+
+    for week_end in weekly_dates:
+        week_start = week_end - timedelta(days=6)
+        system_occupied = weekly_df.loc[week_end]
+        total_weighted_capacity = sum(
+            Bed.query.filter_by(hospital_id=h.id).count() * level_weights.get(h.level, 1.0)
+            for h in all_hospitals
+        )
+        weighted_hospital_capacity = hospital_capacity * hospital_weight
+        weighted_share = weighted_hospital_capacity / total_weighted_capacity if total_weighted_capacity > 0 else 0
+        hospital_occupied = min(int(round(system_occupied * weighted_share)), hospital_capacity)
+        percent = round((hospital_occupied / hospital_capacity) * 100, 1) if hospital_capacity else 0
+        weekly_occupancy.append({
+            'week_start': week_start.strftime('%b %d, %Y'),
+            'week_end': week_end.strftime('%b %d, %Y'),
+            'percent': percent,
+            'occupied': hospital_occupied,
+            'total_beds': hospital_capacity
+        })
+
+    # Prediction logic (as before)
+    model = load_arima_model()
+    forecast = model.forecast(steps=1)
+    system_prediction = float(forecast[0])
+    total_weighted_capacity = sum(
+        Bed.query.filter_by(hospital_id=h.id).count() * level_weights.get(h.level, 1.0)
+        for h in all_hospitals
+    )
+    weighted_hospital_capacity = hospital_capacity * hospital_weight
+    proportional_forecast = system_prediction * (weighted_hospital_capacity / total_weighted_capacity) if total_weighted_capacity > 0 else 0
+    proportional_forecast = min(proportional_forecast, hospital_capacity)
+    proportional_occupied = int(round(proportional_forecast))
+    proportional_percent = round((proportional_occupied / hospital_capacity) * 100, 1) if hospital_capacity else 0
+    proportional_threshold = 0.8 * hospital_capacity
+    proportional_surge_alert = proportional_forecast >= proportional_threshold
+    if hasattr(forecast, 'index') and len(forecast.index) > 0:
+        pred_week_end = forecast.index[0].date()
+        pred_week_start = pred_week_end - timedelta(days=6)
+        predicted_week_start = pred_week_start.strftime('%b %d, %Y')
+        predicted_week_end = pred_week_end.strftime('%b %d, %Y')
+    else:
+        predicted_week_start = ''
+        predicted_week_end = ''
+    weekly_occupancy.append({
+        'week_start': predicted_week_start,
+        'week_end': predicted_week_end,
+        'percent': proportional_percent,
+        'occupied': proportional_occupied,
+        'total_beds': hospital_capacity,
+        'predicted': True,
+        'surge_alert': proportional_surge_alert
+    })
+
+    return jsonify({
+        'weekly_occupancy': weekly_occupancy,
+        'surge_threshold': 80
+    })
+
+@prediction_bp.route('/occupancy_distribution', methods=['GET'])
+def occupancy_distribution():
+    """Return the weekly occupancy distribution for a hospital (last 10 weeks, weighted, binned)."""
+    import os
+    import pandas as pd
+    hospital_id = request.args.get('hospital_id', type=int)
+    if not hospital_id:
+        return jsonify({'error': 'hospital_id is required'}), 400
+    hospital = Hospital.query.get(hospital_id)
+    if not hospital:
+        return jsonify({'error': 'Hospital not found'}), 404
+    # Load weekly data from Dataset1.xlsx
+    dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'app', 'Dataset', 'Dataset1.xlsx')
+    df = pd.read_excel(dataset_path)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.set_index('date')
+    occ_col = 'total_ped_icu_patients' if 'total_ped_icu_patients' in df.columns else 'occupied_ped_icu_beds'
+    weekly_df = df[occ_col].resample('W-SUN').mean()
+    weekly_df = weekly_df[-50:]  # Last 10 weeks
+    weekly_dates = weekly_df.index
+    level_weights = {2: 2.5, 3: 2.0, 4: 1.8, 5: 0.6, 6: 0.2}
+    hospital_capacity = Bed.query.filter_by(hospital_id=hospital_id).count()
+    hospital_weight = level_weights.get(hospital.level, 1.0)
+    all_hospitals = Hospital.query.all()
+    # Calculate weighted occupancy for each week
+    percents = []
+    for week_end in weekly_dates:
+        system_occupied = weekly_df.loc[week_end]
+        total_weighted_capacity = sum(
+            Bed.query.filter_by(hospital_id=h.id).count() * level_weights.get(h.level, 1.0)
+            for h in all_hospitals
+        )
+        weighted_hospital_capacity = hospital_capacity * hospital_weight
+        weighted_share = weighted_hospital_capacity / total_weighted_capacity if total_weighted_capacity > 0 else 0
+        hospital_occupied = min(int(round(system_occupied * weighted_share)), hospital_capacity)
+        percent = round((hospital_occupied / hospital_capacity) * 100, 1) if hospital_capacity else 0
+        percents.append(percent)
+    # Bin into ranges
+    bins = [50, 60, 70, 80, 90, 100]
+    bin_labels = ["50-60%", "60-70%", "70-80%", "80-90%", "90-100%"]
+    bin_counts = [0] * (len(bins) - 1)
+    for p in percents:
+        for i in range(len(bins) - 1):
+            if bins[i] <= p < bins[i+1]:
+                bin_counts[i] += 1
+                break
+            elif p == 100 and i == len(bins) - 2:
+                bin_counts[i] += 1
+    total = sum(bin_counts)
+    probabilities = [round((count / total) * 100, 1) if total > 0 else 0 for count in bin_counts]
+    return jsonify({
+        'bins': bin_labels,
+        'probabilities': probabilities
     }) 
