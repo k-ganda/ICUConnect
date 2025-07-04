@@ -7,6 +7,7 @@ import os
 from statsmodels.tsa.arima.model import ARIMAResults
 from app.models import Hospital, Bed, Admission, Discharge
 from sqlalchemy import func
+import json
 
 prediction_bp = Blueprint('prediction', __name__)
 
@@ -59,8 +60,40 @@ def predict_occupancy():
             hospital_capacity = Bed.query.filter_by(hospital_id=hospital.id).count()
             # Calculate total system capacity (sum of all beds)
             total_system_capacity = Bed.query.count() or 1
-            # Proportional allocation
-            proportional_forecast = predictions[0] * (hospital_capacity / total_system_capacity)
+            
+            # Define hospital level weights (more aggressive for realistic surge distribution)
+            level_weights = {
+                2: 2.5,  # Level 2: Much higher demand (dispensaries/health centers)
+                3: 2.0,  # Level 3: Higher demand (sub-county hospitals)
+                4: 1.8,  # Level 4: High demand (county hospitals)
+                5: 0.6,  # Level 5: Lower demand (county referral hospitals)
+                6: 0.2   # Level 6: Much lower demand (national referral hospitals)
+            }
+            
+            # Calculate weighted bed capacity for this hospital
+            hospital_weight = level_weights.get(hospital.level, 1.0)
+            weighted_hospital_capacity = hospital_capacity * hospital_weight
+            
+            # Calculate total weighted system capacity
+            all_hospitals = Hospital.query.all()
+            total_weighted_capacity = 0
+            for hosp in all_hospitals:
+                hosp_beds = Bed.query.filter_by(hospital_id=hosp.id).count()
+                hosp_weight = level_weights.get(hosp.level, 1.0)
+                total_weighted_capacity += hosp_beds * hosp_weight
+            
+            # Use weighted allocation if hospital has a level, else fall back to proportional by bed count
+            if hospital.level and hospital.level in level_weights:
+                # Weighted allocation based on hospital level
+                proportional_forecast = predictions[0] * (weighted_hospital_capacity / total_weighted_capacity)
+                print(f"Hospital {hospital.name} (Level {hospital.level}): Using weighted allocation")
+            else:
+                # Fallback to proportional by bed count
+                proportional_forecast = predictions[0] * (hospital_capacity / total_system_capacity)
+                print(f"Hospital {hospital.name}: Using proportional by bed count (no level found)")
+            
+            # Cap at hospital capacity
+            proportional_forecast = min(proportional_forecast, hospital_capacity)
             proportional_occupied = int(round(proportional_forecast))
             proportional_threshold = 0.8 * hospital_capacity
             proportional_percent = round((proportional_occupied / hospital_capacity) * 100, 1) if hospital_capacity else 0
