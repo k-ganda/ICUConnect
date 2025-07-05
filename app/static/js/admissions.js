@@ -159,14 +159,14 @@ document.addEventListener('DOMContentLoaded', function () {
 									arrival_notes: '',
 								}),
 							}).then(() => {
-								// Removed window.location.replace to allow real-time update to work
+								// Refresh the admissions table to show the new admission
+								refreshAdmissionsTable();
 								if (window.showToast) {
 									window.showToast(
 										'Patient admitted and transfer updated!',
 										'success'
 									);
 								}
-								// Optionally, you could close the form or show a message here
 							});
 						} else {
 							// Add notification for regular admission
@@ -182,8 +182,9 @@ document.addEventListener('DOMContentLoaded', function () {
 								);
 							}
 
+							// Refresh the admissions table to show the new admission
+							refreshAdmissionsTable();
 							url.searchParams.delete('transfer_id');
-							window.location.replace(url.toString());
 						}
 					} else {
 						alert('Error: ' + (data.message || 'Unknown error occurred'));
@@ -194,6 +195,13 @@ document.addEventListener('DOMContentLoaded', function () {
 					alert('An error occurred: ' + (error.message || 'Unknown error'));
 				});
 		});
+	}
+
+	// Function to refresh the admissions table
+	function refreshAdmissionsTable() {
+		console.log('[admissions.js] Refreshing admissions table...');
+		// Reload the page to show the updated admissions table
+		window.location.reload();
 	}
 
 	window.openAdmissionForm = function () {

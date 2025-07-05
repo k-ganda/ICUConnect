@@ -99,6 +99,7 @@ def api_settings():
     elif request.method == 'POST':
         # Update user settings
         data = request.get_json()
+        print(f"DEBUG: Received settings data: {data}")
         
         user_settings = UserSettings.query.filter_by(user_id=current_user.id).first()
         if not user_settings:
@@ -123,12 +124,21 @@ def api_settings():
         if 'system_notifications' in data:
             user_settings.system_notifications = data['system_notifications']
         if 'notification_duration' in data:
+            print(f"DEBUG: Setting notification_duration to: {data['notification_duration']}")
             user_settings.notification_duration = int(data['notification_duration'])
+            print(f"DEBUG: After setting, notification_duration is: {user_settings.notification_duration}")
+            
+            # Also update hospital-level notification duration
+            hospital = Hospital.query.get(current_user.hospital_id)
+            if hospital:
+                hospital.notification_duration = int(data['notification_duration'])
+                print(f"DEBUG: Updated hospital {hospital.name} notification_duration to: {hospital.notification_duration}")
         if 'auto_escalate' in data:
             user_settings.auto_escalate = data['auto_escalate']
         
         user_settings.updated_at = datetime.now()
         db.session.commit()
+        print(f"DEBUG: Settings saved successfully.")
         
         return jsonify({
             'success': True,

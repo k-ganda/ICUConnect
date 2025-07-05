@@ -20,6 +20,7 @@ class Hospital(db.Model):
     longitude = db.Column(db.Float)
     level = db.Column(db.Integer)
     timezone = db.Column(db.String(50), default='Africa/Kigali')  # Default to Rwanda timezone
+    notification_duration = db.Column(db.Integer, default=120)  # Default notification duration in seconds
     
     @property
     def total_beds(self):

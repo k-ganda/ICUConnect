@@ -108,6 +108,8 @@ def _initialize_database(app, reset=False):
         if not os.path.exists(migrations_path):
             init(directory=migrations_path)
 
+        # migrate(message='Initial migration', directory=migrations_path)
+        # upgrade(directory=migrations_path)
         migrate(message='Initial migration', directory=migrations_path)
         upgrade(directory=migrations_path)
 

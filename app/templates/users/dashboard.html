@@ -389,6 +389,9 @@
 	        });
 	}
 
+	// Make loadActiveTransfers globally available
+	window.loadActiveTransfers = loadActiveTransfers;
+
 	function setupEventListeners() {
 	    // Referral form submission
 	    document.getElementById('referralForm').addEventListener('submit', function(e) {

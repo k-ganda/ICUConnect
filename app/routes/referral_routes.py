@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from app import db
-from app.models import Hospital, Admission, ReferralRequest, ReferralResponse, HospitalContact, PatientTransfer, Bed
+from app.models import Hospital, Admission, ReferralRequest, ReferralResponse, HospitalContact, PatientTransfer, Bed, UserSettings, User
 from app.utils import get_current_local_time, to_utc_time
 import json
 from flask_socketio import emit
@@ -25,6 +25,38 @@ def debug():
         'success': True,
         'message': 'Debug endpoint accessible',
         'timestamp': datetime.utcnow().isoformat()
+    })
+
+@referral_bp.route('/debug/hospital-settings')
+def debug_hospital_settings():
+    """Debug endpoint to check hospital users and their notification settings"""
+    from app.models import User, UserSettings, Hospital
+    
+    hospitals_data = []
+    
+    for hospital in Hospital.query.all():
+        users = User.query.filter_by(hospital_id=hospital.id).all()
+        users_data = []
+        
+        for user in users:
+            settings = UserSettings.query.filter_by(user_id=user.id).first()
+            users_data.append({
+                'user_id': user.id,
+                'email': user.email,
+                'name': user.name,
+                'has_settings': settings is not None,
+                'notification_duration': settings.notification_duration if settings else 'No settings'
+            })
+        
+        hospitals_data.append({
+            'hospital_id': hospital.id,
+            'hospital_name': hospital.name,
+            'user_count': len(users),
+            'users': users_data
+        })
+    
+    return jsonify({
+        'hospitals': hospitals_data
     })
 
 @referral_bp.route('/referrals')
@@ -115,26 +147,33 @@ def initiate_referral():
         
         print(f"Referral created successfully with ID: {referral.id}")
         
+        # Get target hospital's notification duration setting
+        notification_duration = target_hospital.notification_duration
+        print(f"DEBUG: Target hospital ID: {target_hospital_id}")
+        print(f"DEBUG: Target hospital name: {target_hospital.name}")
+        print(f"DEBUG: Target hospital notification duration: {notification_duration}")
+        
         referral_data = {
             'id': referral.id,
             'target_hospital_id': referral.target_hospital_id,
             'patient_age': referral.patient_age,
             'patient_gender': referral.patient_gender,
             'primary_diagnosis': referral.primary_diagnosis,
-            'requesting_hospital': referral.requesting_hospital.name,
-            'urgency': referral.urgency_level,
-            'reason': referral.reason_for_referral,
             'current_treatment': referral.current_treatment,
+            'reason': referral.reason_for_referral,
+            'urgency': referral.urgency_level,
             'special_requirements': referral.special_requirements,
-            'time_remaining': 120
+            'requesting_hospital': referral.requesting_hospital.name,
+            'time_remaining': notification_duration
         }
+        print(f"DEBUG: Sending referral_data with time_remaining: {referral_data['time_remaining']}")
         socketio.emit('new_referral', referral_data)
         
         return jsonify({
             'success': True,
             'referral_id': referral.id,
             'message': f'Referral sent to {target_hospital.name}',
-            'timeout_seconds': 120  # 2 minutes
+            'timeout_seconds': notification_duration
         }), 200
         
     except Exception as e:
@@ -303,6 +342,10 @@ def pending_referrals():
         
         print(f"DEBUG: Found {len(pending)} pending referrals")
 
+        # Get hospital's notification duration setting
+        hospital = Hospital.query.get(current_user.hospital_id)
+        notification_duration = hospital.notification_duration
+
         referrals_data = []
         for ref in pending:
             elapsed = (datetime.utcnow() - ref.created_at).total_seconds()
@@ -318,7 +361,7 @@ def pending_referrals():
                 'requesting_hospital': ref.requesting_hospital.name,
                 'target_hospital_id': ref.target_hospital_id,
                 'time_elapsed': elapsed,
-                'time_remaining': max(0, 120 - elapsed)  # 2 minutes timeout
+                'time_remaining': max(0, notification_duration - elapsed)
             })
 
         print(f"DEBUG: Returning {len(referrals_data)} referrals")
@@ -386,6 +429,10 @@ def escalate_referral(referral_id):
         db.session.add(new_referral)
         db.session.commit()
         
+        # Get hospital's notification duration setting for the escalated referral
+        hospital = Hospital.query.get(current_user.hospital_id)
+        notification_duration = hospital.notification_duration
+        
         # Send WebSocket notification to Khan Hospital Kisumu about the new referral
         new_referral_data = {
             'id': new_referral.id,
@@ -398,7 +445,7 @@ def escalate_referral(referral_id):
             'urgency': new_referral.urgency_level,
             'special_requirements': new_referral.special_requirements,
             'requesting_hospital': new_referral.requesting_hospital.name,
-            'time_remaining': 120
+            'time_remaining': notification_duration
         }
         socketio.emit('new_referral', new_referral_data)
         
@@ -431,6 +478,9 @@ def all_referrals():
     try:
         hospital = Hospital.query.get(current_user.hospital_id)
         
+        # Get hospital's notification duration setting
+        notification_duration = hospital.notification_duration
+        
         # Get referrals where this hospital is the target OR the requesting hospital
         all_referrals = ReferralRequest.query.filter(
             (ReferralRequest.target_hospital_id == hospital.id) |
@@ -456,7 +506,7 @@ def all_referrals():
                 'status': ref.status,
                 'created_at': ref.created_at.isoformat(),
                 'time_elapsed': time_elapsed,
-                'time_remaining': max(0, 120 - time_elapsed) if ref.status == 'Pending' else 0,
+                'time_remaining': max(0, notification_duration - time_elapsed) if ref.status == 'Pending' else 0,
                 'is_target': is_target,  # True if this hospital is the target
                 'direction': 'Received' if is_target else 'Sent'
             })

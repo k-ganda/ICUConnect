@@ -98,14 +98,19 @@ function startReferralCountdown(referral) {
 		clearInterval(referralCountdownInterval);
 		referralCountdownInterval = null;
 	}
-	referralCountdownRemaining = referral.time_remaining || 120;
+	// Use the referral's time_remaining (set by backend based on hospital settings)
+	const notificationDuration = referral.time_remaining || 120;
+	referralCountdownRemaining = notificationDuration;
 	referralCountdownStartTimestamp = Date.now();
 	referralCountdownReferralId = referral.id;
 	console.log(
 		'Starting countdown for referral ID:',
 		referralCountdownReferralId,
 		'with time remaining:',
-		referralCountdownRemaining
+		referralCountdownRemaining,
+		'(referral.time_remaining:',
+		referral.time_remaining,
+		')'
 	);
 	updateReferralCountdownDisplay();
 	referralCountdownInterval = setInterval(() => {
@@ -113,7 +118,7 @@ function startReferralCountdown(referral) {
 		const elapsed = Math.floor(
 			(Date.now() - referralCountdownStartTimestamp) / 1000
 		);
-		let remaining = (referral.time_remaining || 120) - elapsed;
+		let remaining = notificationDuration - elapsed;
 		if (remaining < 0) remaining = 0;
 		referralCountdownRemaining = remaining;
 		updateReferralCountdownDisplay();
@@ -610,32 +615,19 @@ socket.on('transfer_status_update', function (transfer) {
 	// Also update dashboard if function is available
 	if (typeof window.loadActiveTransfers === 'function') {
 		if (transfer.status === 'Admitted') {
-			// Polling approach: try every 500ms for up to 3 seconds
-			let attempts = 0;
-			const maxAttempts = 6;
-			const poll = () => {
-				window.loadActiveTransfers();
-				attempts++;
-				// Check if transfer is still present after a short delay
-				setTimeout(() => {
-					// activeTransfers is global in dashboard.html
-					const stillPresent =
-						window.activeTransfers &&
-						window.activeTransfers.some(
-							(tr) => tr.id == transfer.id && tr.status === 'En Route'
-						);
-					if (stillPresent && attempts < maxAttempts) {
-						poll();
-					}
-				}, 300);
-			};
-			poll();
+			// Immediately refresh the transfers list to remove the admitted transfer
+			window.loadActiveTransfers();
+
+			// Also refresh the page after a short delay to ensure all updates are visible
+			setTimeout(() => {
+				window.location.reload();
+			}, 1000);
 		} else {
 			window.loadActiveTransfers();
 		}
 	} else if (transfer.status === 'Admitted') {
 		// Fallback: force reload if admitted and function not available
-		setTimeout(() => window.location.reload(), 2000);
+		setTimeout(() => window.location.reload(), 1000);
 	}
 });
 
