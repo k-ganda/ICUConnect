@@ -103,7 +103,7 @@ def initiate_referral():
             primary_diagnosis=data.get('primary_diagnosis', ''),
             current_treatment=data.get('current_treatment', ''),
             reason_for_referral=data.get('reason', ''),
-            urgency_level=data.get('urgency', 'Medium'),
+            urgency_level=data.get('priority', 'Medium'),
             special_requirements=data.get('special_requirements', ''),
             status='Pending'
         )
@@ -337,11 +337,13 @@ def pending_referrals():
 @referral_bp.route('/api/escalate-referral/<int:referral_id>', methods=['POST'])
 @login_required
 def escalate_referral(referral_id):
-    """Escalate referral to next available hospital"""
+    """Escalate referral to Khan Hospital Kisumu (id=6)"""
     try:
         referral = ReferralRequest.query.get_or_404(referral_id)
         
-        if referral.requesting_hospital_id != current_user.hospital_id:
+        # Allow either the requesting hospital or the target hospital to escalate
+        if (referral.requesting_hospital_id != current_user.hospital_id and 
+            referral.target_hospital_id != current_user.hospital_id):
             return jsonify({
                 'success': False,
                 'message': 'Unauthorized access'
@@ -353,41 +355,19 @@ def escalate_referral(referral_id):
                 'message': 'Referral is no longer pending'
             }), 400
         
-        # Find next available hospital
-        current_hospital = Hospital.query.get(current_user.hospital_id)
-        all_hospitals = Hospital.query.filter(
-            Hospital.id != current_hospital.id,
-            Hospital.available_beds > 0
-        ).all()
-        
-        # Sort by distance and exclude already contacted hospitals
-        contacted_hospitals = [r.target_hospital_id for r in ReferralRequest.query.filter_by(
-            requesting_hospital_id=current_hospital.id,
-            
-        ).all()]
-        
-        available_hospitals = []
-        for h in all_hospitals:
-            if h.id not in contacted_hospitals:
-                distance = calculate_distance(
-                    current_hospital.latitude, current_hospital.longitude,
-                    h.latitude, h.longitude
-                )
-                available_hospitals.append((h, distance))
-        
-        available_hospitals.sort(key=lambda x: x[1])  # Sort by distance
-        
-        if not available_hospitals:
+        # Escalate to Khan Hospital Kisumu (id=6)
+        khan_hospital_id = 6
+        khan_hospital = Hospital.query.get(khan_hospital_id)
+        if not khan_hospital:
             return jsonify({
                 'success': False,
-                'message': 'No more hospitals with available beds'
+                'message': 'Khan Hospital Kisumu (id=6) not found'
             }), 404
         
-        # Create new referral to next closest hospital
-        next_hospital = available_hospitals[0][0]
+        # Create new referral to Khan Hospital Kisumu
         new_referral = ReferralRequest(
-            requesting_hospital_id=current_hospital.id,
-            target_hospital_id=next_hospital.id,
+            requesting_hospital_id=referral.requesting_hospital_id,
+            target_hospital_id=khan_hospital_id,
             patient_id=None,
             patient_age=referral.patient_age,
             patient_gender=referral.patient_gender,
@@ -406,11 +386,35 @@ def escalate_referral(referral_id):
         db.session.add(new_referral)
         db.session.commit()
         
+        # Send WebSocket notification to Khan Hospital Kisumu about the new referral
+        new_referral_data = {
+            'id': new_referral.id,
+            'target_hospital_id': new_referral.target_hospital_id,
+            'patient_age': new_referral.patient_age,
+            'patient_gender': new_referral.patient_gender,
+            'primary_diagnosis': new_referral.primary_diagnosis,
+            'current_treatment': new_referral.current_treatment,
+            'reason': new_referral.reason_for_referral,
+            'urgency': new_referral.urgency_level,
+            'special_requirements': new_referral.special_requirements,
+            'requesting_hospital': new_referral.requesting_hospital.name,
+            'time_remaining': 120
+        }
+        socketio.emit('new_referral', new_referral_data)
+        
+        # Send WebSocket notification to the original hospital about the escalation
+        escalation_notification = {
+            'referral_id': referral.id,
+            'escalated_to': khan_hospital.name,
+            'message': f'Referral #{referral.id} has been escalated to {khan_hospital.name} due to timeout'
+        }
+        socketio.emit('referral_escalated', escalation_notification)
+        
         return jsonify({
             'success': True,
             'new_referral_id': new_referral.id,
-            'target_hospital': next_hospital.name,
-            'message': f'Escalated to {next_hospital.name}'
+            'target_hospital': khan_hospital.name,
+            'message': f'Escalated to {khan_hospital.name}'
         }), 200
         
     except Exception as e:

@@ -92,6 +92,7 @@ function saveAudioEnabledStatus(enabled) {
 }
 
 function startReferralCountdown(referral) {
+	console.log('startReferralCountdown called with referral:', referral);
 	// Stop any existing countdown
 	if (referralCountdownInterval) {
 		clearInterval(referralCountdownInterval);
@@ -100,6 +101,12 @@ function startReferralCountdown(referral) {
 	referralCountdownRemaining = referral.time_remaining || 120;
 	referralCountdownStartTimestamp = Date.now();
 	referralCountdownReferralId = referral.id;
+	console.log(
+		'Starting countdown for referral ID:',
+		referralCountdownReferralId,
+		'with time remaining:',
+		referralCountdownRemaining
+	);
 	updateReferralCountdownDisplay();
 	referralCountdownInterval = setInterval(() => {
 		// Calculate elapsed time
@@ -111,8 +118,71 @@ function startReferralCountdown(referral) {
 		referralCountdownRemaining = remaining;
 		updateReferralCountdownDisplay();
 		if (remaining <= 0) {
+			console.log(
+				'startReferralCountdown: Countdown reached 0, handling timeout...'
+			);
+			console.log('referralCountdownReferralId:', referralCountdownReferralId);
+			console.log('window.referralSystem:', window.referralSystem);
+
 			clearInterval(referralCountdownInterval);
 			referralCountdownInterval = null;
+			// Handle timeout - stop notification and close modal
+			stopNotificationSound();
+			closeReferralModal();
+
+			// Escalation logic: call backend to escalate referral
+			if (referralCountdownReferralId) {
+				console.log(
+					'startReferralCountdown: Escalating referral with ID:',
+					referralCountdownReferralId
+				);
+				console.log('About to call check-referral-status API...');
+				fetch(
+					`/referrals/api/check-referral-status/${referralCountdownReferralId}`
+				)
+					.then((response) => response.json())
+					.then((data) => {
+						console.log('Referral status check response:', data);
+						if (data.success && data.status === 'Pending') {
+							console.log('Referral is still pending, escalating...');
+							console.log('About to call escalate-referral API...');
+							fetch(
+								`/referrals/api/escalate-referral/${referralCountdownReferralId}`,
+								{
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+									},
+								}
+							)
+								.then((response) => response.json())
+								.then((escalateData) => {
+									console.log('Escalation response:', escalateData);
+									if (escalateData.success) {
+										showAlert(
+											`Referral escalated to ${escalateData.target_hospital}`,
+											'info'
+										);
+									} else {
+										showAlert(escalateData.message, 'error');
+									}
+								})
+								.catch((error) => {
+									console.error('Error escalating referral:', error);
+									showAlert('Error escalating referral', 'error');
+								});
+						} else {
+							console.log('Referral is not pending, status:', data.status);
+						}
+					})
+					.catch((error) => {
+						console.error('Error checking referral status:', error);
+					});
+			} else {
+				console.log(
+					'startReferralCountdown: referralCountdownReferralId not available'
+				);
+			}
 		}
 	}, 1000);
 }
@@ -131,33 +201,51 @@ function showReferralModal(referral) {
 	if (!detailsDiv) return;
 
 	currentReferralId = referral.id;
+	const urgency = referral.urgency || referral.urgency_level || 'Medium';
+	const urgencyColor =
+		urgency.toLowerCase() === 'high'
+			? 'danger'
+			: urgency.toLowerCase() === 'medium'
+			? 'warning text-dark'
+			: 'info text-dark';
 	detailsDiv.innerHTML = `
 		<div class="row">
-			<div class="col-md-6">
-				<h6>Patient Information</h6>
-				<p><strong>Age:</strong> ${referral.patient_age}</p>
-				<p><strong>Gender:</strong> ${referral.patient_gender}</p>
+			<div class="col-md-6 mb-3">
+				<h6 class="fw-bold text-primary mb-3">Patient Information</h6>
+				<div class="mb-2"><span class="fw-bold">Age:</span> ${
+					referral.patient_age
+				}</div>
+				<div class="mb-2"><span class="fw-bold">Gender:</span> ${
+					referral.patient_gender
+				}</div>
 				${
 					referral.primary_diagnosis
-						? `<p><strong>Primary Diagnosis:</strong> ${referral.primary_diagnosis}</p>`
+						? `<div class="mb-2"><span class="fw-bold">Primary Diagnosis:</span> ${referral.primary_diagnosis}</div>`
 						: ''
 				}
 			</div>
-			<div class="col-md-6">
-				<h6>Referral Details</h6>
-				<p><strong>From:</strong> ${referral.requesting_hospital}</p>
-				<p><strong>Urgency:</strong> ${referral.urgency}</p>
-				<p><strong>Reason:</strong> ${referral.reason || ''}</p>
+			<div class="col-md-6 mb-3">
+				<h6 class="fw-bold text-primary mb-3">Referral Details</h6>
+				<div class="mb-2"><span class="fw-bold">From:</span> ${
+					referral.requesting_hospital
+				}</div>
+				<div class="mb-2">
+					<span class="fw-bold">Urgency:</span>
+					<span class="badge bg-${urgencyColor} ms-1">${urgency}</span>
+				</div>
+				<div class="mb-2"><span class="fw-bold">Reason:</span> ${
+					referral.reason || ''
+				}</div>
 				${
 					referral.current_treatment
-						? `<p><strong>Current Treatment:</strong> ${referral.current_treatment}</p>`
+						? `<div class="mb-2"><span class="fw-bold">Current Treatment:</span> ${referral.current_treatment}</div>`
 						: ''
 				}
 			</div>
 		</div>
 		${
 			referral.special_requirements
-				? `<p><strong>Special Requirements:</strong> ${referral.special_requirements}</p>`
+				? `<div class="mt-3"><span class="fw-bold">Special Requirements:</span> ${referral.special_requirements}</div>`
 				: ''
 		}
 	`;
@@ -587,6 +675,29 @@ socket.on('referral_response', function (response) {
 		}
 	} else {
 		console.warn('addNotification function not available');
+	}
+});
+
+// Listen for referral escalations
+socket.on('referral_escalated', function (escalation) {
+	console.log('Referral escalation received:', escalation);
+	if (window.addNotification) {
+		// Show to the requesting hospital (the one that sent the original referral)
+		if (window.currentHospitalId) {
+			const title = 'Referral Escalated';
+			const message = escalation.message;
+
+			console.log('Adding notification for referral escalation:', {
+				title,
+				message,
+			});
+			window.addNotification('referral', title, message, {
+				referral_id: escalation.referral_id,
+				escalated_to: escalation.escalated_to,
+			});
+		}
+	} else {
+		console.warn('addNotification function not available for escalation');
 	}
 });
 

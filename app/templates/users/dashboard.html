@@ -156,6 +156,45 @@
 								placeholder="Equipment, specialists, Allergies..."></textarea>
 						</div>
 
+						<div class="mb-3">
+							<label class="form-label">Priority</label>
+							<div class="btn-group w-100" role="group">
+								<input
+									type="radio"
+									class="btn-check"
+									name="priority"
+									id="refPriorityLow"
+									value="Low"
+									autocomplete="off" />
+								<label class="btn btn-outline-success" for="refPriorityLow"
+									>Low</label
+								>
+
+								<input
+									type="radio"
+									class="btn-check"
+									name="priority"
+									id="refPriorityMedium"
+									value="Medium"
+									autocomplete="off"
+									checked />
+								<label class="btn btn-outline-warning" for="refPriorityMedium"
+									>Medium</label
+								>
+
+								<input
+									type="radio"
+									class="btn-check"
+									name="priority"
+									id="refPriorityHigh"
+									value="High"
+									autocomplete="off" />
+								<label class="btn btn-outline-danger" for="refPriorityHigh"
+									>High</label
+								>
+							</div>
+						</div>
+
 						<!-- Submit Button -->
 						<button
 							type="submit"
@@ -366,8 +405,11 @@
 	        primary_diagnosis: document.getElementById('primaryDiagnosis').value,
 	        current_treatment: document.getElementById('currentTreatment').value,
 	        reason: document.getElementById('reasonForReferral').value,
-	        special_requirements: document.getElementById('specialRequirements').value
+	        special_requirements: document.getElementById('specialRequirements').value,
+	        priority: document.querySelector('input[name="priority"]:checked')?.value || 'Medium'
 	    };
+
+	    console.log('Submitting referral with data:', formData);
 
 	    // Validate form
 	    if (!formData.target_hospital_id) {

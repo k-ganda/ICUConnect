@@ -271,13 +271,18 @@ class ReferralSystem {
 	}
 
 	handleTimeout(referralId) {
+		console.log('handleTimeout called for referralId:', referralId);
 		// Check if referral was responded to
 		fetch(`/referrals/api/check-referral-status/${referralId}`)
 			.then((response) => response.json())
 			.then((data) => {
+				console.log('Referral status check response:', data);
 				if (data.success && data.status === 'Pending') {
+					console.log('Referral is still pending, escalating...');
 					// Auto-escalate to next hospital
 					this.escalateReferral(referralId);
+				} else {
+					console.log('Referral is not pending, status:', data.status);
 				}
 			})
 			.catch((error) => {
@@ -286,6 +291,7 @@ class ReferralSystem {
 	}
 
 	escalateReferral(referralId) {
+		console.log('escalateReferral called for referralId:', referralId);
 		fetch(`/referrals/api/escalate-referral/${referralId}`, {
 			method: 'POST',
 			headers: {
@@ -294,6 +300,7 @@ class ReferralSystem {
 		})
 			.then((response) => response.json())
 			.then((data) => {
+				console.log('Escalation response:', data);
 				if (data.success) {
 					showAlert(`Referral escalated to ${data.target_hospital}`, 'info');
 					this.startReferralTracking(data.new_referral_id, 120);
@@ -421,6 +428,7 @@ class ReferralSystem {
 	}
 
 	startCountdown(timeRemaining) {
+		console.log('startCountdown called with timeRemaining:', timeRemaining);
 		const timeElement = document.getElementById('timeRemaining');
 		let timeLeft = timeRemaining;
 
@@ -432,9 +440,20 @@ class ReferralSystem {
 				.padStart(2, '0')}`;
 
 			if (timeLeft <= 0) {
+				console.log('Countdown reached 0, handling timeout...');
 				clearInterval(countdown);
 				this.stopNotification();
 				this.closeReferralModal();
+				// Call escalation logic when timeout occurs
+				if (this.currentReferralId) {
+					console.log(
+						'Calling handleTimeout with currentReferralId:',
+						this.currentReferralId
+					);
+					this.handleTimeout(this.currentReferralId);
+				} else {
+					console.log('No currentReferralId available');
+				}
 			}
 			timeLeft--;
 		}, 1000);
