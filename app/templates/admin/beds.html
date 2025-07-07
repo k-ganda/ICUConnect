@@ -1,0 +1,250 @@
+{% extends "base.html" %} {% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+	<div class="container-fluid">
+		<a class="navbar-brand d-flex align-items-center" href="#">
+			<i class="fas fa-hospital me-2"></i>ICUConnect
+		</a>
+		<div class="collapse navbar-collapse">
+			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.dashboard' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.dashboard') }}">
+						<i class="fas fa-user-clock me-1"></i> Pending Approvals
+					</a>
+				</li>
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.beds' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.beds') }}">
+						<i class="fas fa-procedures me-1"></i> Bed Management
+					</a>
+				</li>
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.admins' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.admins') }}">
+						<i class="fas fa-user-shield me-1"></i> Admin Management
+					</a>
+				</li>
+				{% if current_user.privilege_level == 'super' %}
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.hospitals' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.hospitals') }}">
+						<i class="fas fa-hospital me-1"></i> Hospital Management
+					</a>
+				</li>
+				{% endif %}
+			</ul>
+			<div class="d-flex align-items-center">
+				<div class="text-end me-3">
+					<div class="fw-semibold">{{ current_user.email }}</div>
+					<div class="small text-muted">
+						{{ current_user.privilege_level|capitalize }} Administrator
+					</div>
+				</div>
+				<span
+					class="badge rounded-circle bg-primary text-white me-3"
+					style="
+						width: 36px;
+						height: 36px;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+					">
+					{{ current_user.email[0]|upper }}
+				</span>
+				<a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger">
+					<i class="fas fa-sign-out-alt me-1"></i> Logout
+				</a>
+			</div>
+		</div>
+	</div>
+</nav>
+<div class="container-fluid">
+	<main>
+		<div
+			class="d-flex justify-content-between align-items-center pt-4 pb-2 mb-4 border-bottom">
+			<h1 class="h3 fw-bold mb-0">
+				<i class="fas fa-procedures me-2"></i>Bed Management
+			</h1>
+		</div>
+		<div class="row">
+			<div class="col-12 mb-4">
+				<div class="card shadow-sm rounded-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0"><i class="fas fa-plus me-2"></i>Add New Bed</h5>
+					</div>
+					<div class="card-body">
+						<form
+							method="POST"
+							action="{{ url_for('admin.add_bed') }}"
+							class="row g-3">
+							{% if current_user.privilege_level == 'super' %}
+							<div class="col-md-5">
+								<label for="hospital_id" class="form-label">Hospital</label>
+								<select
+									class="form-select"
+									id="hospital_id"
+									name="hospital_id"
+									required>
+									<option value="">Select Hospital</option>
+									{% for hospital in hospitals %}
+									<option value="{{ hospital.id }}">{{ hospital.name }}</option>
+									{% endfor %}
+								</select>
+							</div>
+							<div class="col-md-3">
+								<label for="bed_number" class="form-label">Bed Number</label>
+								<input
+									type="number"
+									class="form-control"
+									id="bed_number"
+									name="bed_number"
+									required />
+							</div>
+							<div class="col-md-3">
+								<label for="bed_type" class="form-label">Bed Type</label>
+								<select class="form-select" id="bed_type" name="bed_type">
+									<option value="ICU">ICU</option>
+									<option value="General">General</option>
+									<option value="Pediatric">Pediatric</option>
+									<option value="Maternity">Maternity</option>
+								</select>
+							</div>
+							<div class="col-md-1 align-self-end">
+								<button type="submit" class="btn btn-success w-100">
+									<i class="fas fa-plus me-1"></i>Add
+								</button>
+							</div>
+							{% else %}
+							<div class="col-md-5">
+								<label for="bed_number" class="form-label">Bed Number</label>
+								<input
+									type="number"
+									class="form-control"
+									id="bed_number"
+									name="bed_number"
+									required />
+							</div>
+							<div class="col-md-5">
+								<label for="bed_type" class="form-label">Bed Type</label>
+								<select class="form-select" id="bed_type" name="bed_type">
+									<option value="ICU">ICU</option>
+									<option value="General">General</option>
+									<option value="Pediatric">Pediatric</option>
+									<option value="Maternity">Maternity</option>
+								</select>
+							</div>
+							<div class="col-md-2 align-self-end">
+								<button type="submit" class="btn btn-success w-100">
+									<i class="fas fa-plus me-1"></i>Add
+								</button>
+							</div>
+							{% endif %}
+						</form>
+					</div>
+				</div>
+			</div>
+			<div class="col-12">
+				<div class="card shadow-sm rounded-4">
+					<div class="card-header bg-info text-white">
+						<h5 class="mb-0"><i class="fas fa-bed me-2"></i>Current Beds</h5>
+					</div>
+					<div class="card-body">
+						{% if beds %}
+						<div class="table-responsive">
+							<table class="table table-hover align-middle">
+								<thead class="table-light">
+									<tr>
+										<th>Bed Number</th>
+										<th>Type</th>
+										{% if current_user.privilege_level == 'super' %}
+										<th>Hospital</th>
+										{% endif %}
+										<th>Status</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for bed in beds.items %}
+									<tr>
+										<td>{{ bed.bed_number }}</td>
+										<td>{{ bed.bed_type }}</td>
+										{% if current_user.privilege_level == 'super' %}
+										<td>{{ bed.hospital.name if bed.hospital else 'N/A' }}</td>
+										{% endif %}
+										<td>
+											{{ 'Occupied' if bed.is_occupied else 'Available' }}
+										</td>
+										<td>
+											<form
+												method="POST"
+												action="{{ url_for('admin.remove_bed', bed_id=bed.id) }}"
+												style="display: inline">
+												<button
+													type="submit"
+													class="btn btn-danger btn-sm"
+													onclick="return confirm('Remove bed {{ bed.bed_number }}?');">
+													<i class="fas fa-trash-alt"></i> Remove
+												</button>
+											</form>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% else %}
+						<div class="alert alert-info">No beds found for this hospital.</div>
+						{% endif %} {% if beds.pages > 1 %}
+						<nav>
+							<ul class="pagination justify-content-center">
+								{% if beds.has_prev %}
+								<li class="page-item">
+									<a
+										class="page-link"
+										href="{{ url_for('admin.beds', page=beds.prev_num) }}"
+										>Previous</a
+									>
+								</li>
+								{% else %}
+								<li class="page-item disabled">
+									<span class="page-link">Previous</span>
+								</li>
+								{% endif %}
+								<li class="page-item disabled">
+									<span class="page-link"
+										>Page {{ beds.page }} of {{ beds.pages }}</span
+									>
+								</li>
+								{% if beds.has_next %}
+								<li class="page-item">
+									<a
+										class="page-link"
+										href="{{ url_for('admin.beds', page=beds.next_num) }}"
+										>Next</a
+									>
+								</li>
+								{% else %}
+								<li class="page-item disabled">
+									<span class="page-link">Next</span>
+								</li>
+								{% endif %}
+							</ul>
+						</nav>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+<style>
+	.nav-link.active {
+		background: #e9ecef;
+		border-radius: 0.5rem;
+	}
+</style>
+{% endblock %}

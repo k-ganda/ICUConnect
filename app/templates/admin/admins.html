@@ -65,46 +65,92 @@
 <div class="container-fluid">
 	<main>
 		<div
-			class="pt-4 pb-2 mb-4 border-bottom d-flex justify-content-between align-items-center">
+			class="d-flex justify-content-between align-items-center pt-4 pb-2 mb-4 border-bottom">
 			<h1 class="h3 fw-bold mb-0">
-				<i class="fas fa-user-clock me-2"></i>Pending Approvals
+				<i class="fas fa-user-shield me-2"></i>Admin Management
 			</h1>
 		</div>
 		<div class="row">
-			<div class="col-12">
-				<div class="card shadow-sm rounded-4 mb-4">
-					<div
-						class="card-header bg-primary text-white d-flex align-items-center">
-						<i class="fas fa-user-clock me-2"></i>
-						<span class="fw-semibold">Pending Approvals</span>
-						<span class="badge bg-info ms-3">{{ pending_users.total }}</span>
+			<div class="col-12 mb-4">
+				<div class="card shadow-sm rounded-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0"><i class="fas fa-plus me-2"></i>Add New Admin</h5>
 					</div>
 					<div class="card-body">
-						{% if pending_users %}
+						<form
+							method="POST"
+							action="{{ url_for('admin.add_admin') }}"
+							class="row g-3">
+							<div class="col-md-5">
+								<label for="email" class="form-label">Email</label>
+								<input
+									type="email"
+									class="form-control"
+									id="email"
+									name="email"
+									required />
+							</div>
+							<div class="col-md-5">
+								<label for="password" class="form-label">Password</label>
+								<input
+									type="password"
+									class="form-control"
+									id="password"
+									name="password"
+									required />
+							</div>
+							<div class="col-md-2 align-self-end">
+								<button type="submit" class="btn btn-success w-100">
+									<i class="fas fa-plus me-1"></i>Add
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+			<div class="col-12">
+				<div class="card shadow-sm rounded-4">
+					<div class="card-header bg-info text-white">
+						<h5 class="mb-0">
+							<i class="fas fa-user-shield me-2"></i>Current Admins
+						</h5>
+					</div>
+					<div class="card-body">
+						{% if admins %}
 						<div class="table-responsive">
 							<table class="table table-hover align-middle">
 								<thead class="table-light">
 									<tr>
 										<th>Email</th>
-										<th>Name</th>
 										<th>Hospital</th>
-										<th>Employee ID</th>
 										<th>Actions</th>
 									</tr>
 								</thead>
 								<tbody>
-									{% for user in pending_users.items %}
+									{% for admin in admins.items %}
 									<tr>
-										<td>{{ user.email }}</td>
-										<td>{{ user.name }}</td>
-										<td>{{ user.hospital.name }}</td>
-										<td>{{ user.employee_id }}</td>
+										<td>{{ admin.email }}</td>
 										<td>
+											{{ admin.hospital.name if admin.hospital else 'N/A' }}
+										</td>
+										<td>
+											<form
+												method="POST"
+												action="{{ url_for('admin.remove_admin', admin_id=admin.id) }}"
+												style="display: inline">
+												<button
+													type="submit"
+													class="btn btn-danger btn-sm"
+													onclick="return confirm('Remove admin {{ admin.email }}?');">
+													<i class="fas fa-trash-alt"></i> Remove
+												</button>
+											</form>
+											<!-- Password reset link/button (placeholder) -->
 											<a
-												href="{{ url_for('admin.approve_user', user_id=user.id) }}"
-												class="btn btn-success btn-sm d-inline-flex align-items-center"
-												onclick="return confirm('Are you sure you want to approve {{ user.email }}?')">
-												<i class="fas fa-check-circle me-1"></i>Approve
+												href="#"
+												class="btn btn-warning btn-sm ms-1 disabled"
+												title="Reset password (not implemented)">
+												<i class="fas fa-key"></i> Reset Password
 											</a>
 										</td>
 									</tr>
@@ -113,20 +159,17 @@
 							</table>
 						</div>
 						{% else %}
-						<div
-							class="alert alert-success d-flex align-items-center"
-							role="alert">
-							<i class="fas fa-check-circle fa-2x me-2"></i>
-							<div>No pending approvals at this time.</div>
+						<div class="alert alert-info">
+							No admins found for this hospital.
 						</div>
-						{% endif %} {% if pending_users.pages > 1 %}
+						{% endif %} {% if admins.pages > 1 %}
 						<nav>
 							<ul class="pagination justify-content-center">
-								{% if pending_users.has_prev %}
+								{% if admins.has_prev %}
 								<li class="page-item">
 									<a
 										class="page-link"
-										href="{{ url_for('admin.dashboard', page=pending_users.prev_num) }}"
+										href="{{ url_for('admin.admins', page=admins.prev_num) }}"
 										>Previous</a
 									>
 								</li>
@@ -137,15 +180,14 @@
 								{% endif %}
 								<li class="page-item disabled">
 									<span class="page-link"
-										>Page {{ pending_users.page }} of {{ pending_users.pages
-										}}</span
+										>Page {{ admins.page }} of {{ admins.pages }}</span
 									>
 								</li>
-								{% if pending_users.has_next %}
+								{% if admins.has_next %}
 								<li class="page-item">
 									<a
 										class="page-link"
-										href="{{ url_for('admin.dashboard', page=pending_users.next_num) }}"
+										href="{{ url_for('admin.admins', page=admins.next_num) }}"
 										>Next</a
 									>
 								</li>

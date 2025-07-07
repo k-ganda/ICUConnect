@@ -1,0 +1,248 @@
+{% extends "base.html" %} {% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+	<div class="container-fluid">
+		<a class="navbar-brand d-flex align-items-center" href="#">
+			<i class="fas fa-hospital me-2"></i>ICUConnect
+		</a>
+		<div class="collapse navbar-collapse">
+			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.dashboard' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.dashboard') }}">
+						<i class="fas fa-user-clock me-1"></i> Pending Approvals
+					</a>
+				</li>
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.beds' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.beds') }}">
+						<i class="fas fa-procedures me-1"></i> Bed Management
+					</a>
+				</li>
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.admins' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.admins') }}">
+						<i class="fas fa-user-shield me-1"></i> Admin Management
+					</a>
+				</li>
+				{% if current_user.privilege_level == 'super' %}
+				<li class="nav-item">
+					<a
+						class="nav-link {% if request.endpoint == 'admin.hospitals' %}active fw-bold text-primary{% endif %}"
+						href="{{ url_for('admin.hospitals') }}">
+						<i class="fas fa-hospital me-1"></i> Hospital Management
+					</a>
+				</li>
+				{% endif %}
+			</ul>
+			<div class="d-flex align-items-center">
+				<div class="text-end me-3">
+					<div class="fw-semibold">{{ current_user.email }}</div>
+					<div class="small text-muted">
+						{{ current_user.privilege_level|capitalize }} Administrator
+					</div>
+				</div>
+				<span
+					class="badge rounded-circle bg-primary text-white me-3"
+					style="
+						width: 36px;
+						height: 36px;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+					">
+					{{ current_user.email[0]|upper }}
+				</span>
+				<a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger">
+					<i class="fas fa-sign-out-alt me-1"></i> Logout
+				</a>
+			</div>
+		</div>
+	</div>
+</nav>
+<div class="container-fluid">
+	<main>
+		<div
+			class="d-flex justify-content-between align-items-center pt-4 pb-2 mb-4 border-bottom">
+			<h1 class="h3 fw-bold mb-0">
+				<i class="fas fa-hospital me-2"></i>Hospital Management
+			</h1>
+		</div>
+		<div class="row">
+			<div class="col-12 mb-4">
+				<div class="card shadow-sm rounded-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0">
+							<i class="fas fa-plus me-2"></i>Add New Hospital
+						</h5>
+					</div>
+					<div class="card-body">
+						<form
+							method="POST"
+							action="{{ url_for('admin.add_hospital') }}"
+							class="row g-3">
+							<div class="col-md-5">
+								<label for="name" class="form-label">Hospital Name</label>
+								<input
+									type="text"
+									class="form-control"
+									id="name"
+									name="name"
+									required />
+							</div>
+							<div class="col-md-5">
+								<label for="verification_code" class="form-label"
+									>Verification Code</label
+								>
+								<input
+									type="text"
+									class="form-control"
+									id="verification_code"
+									name="verification_code"
+									required />
+							</div>
+							<div class="col-md-2 align-self-end">
+								<button type="submit" class="btn btn-success w-100">
+									<i class="fas fa-plus me-1"></i>Add
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+			<div class="col-12 mb-4">
+				<div class="card shadow-sm rounded-4 mb-4">
+					<div class="card-header bg-info text-white">
+						<h5 class="mb-0">
+							<i class="fas fa-hospital me-2"></i>Current Hospitals
+						</h5>
+					</div>
+					<div class="card-body">
+						{% if hospitals %}
+						<div class="table-responsive">
+							<table class="table table-hover align-middle">
+								<thead class="table-light">
+									<tr>
+										<th>Name</th>
+										<th>Verification Code</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for hospital in hospitals.items %}
+									<tr>
+										<td>{{ hospital.name }}</td>
+										<td>{{ hospital.verification_code }}</td>
+										<td>
+											<form
+												method="POST"
+												action="{{ url_for('admin.remove_hospital', hospital_id=hospital.id) }}"
+												style="display: inline">
+												<button
+													type="submit"
+													class="btn btn-danger btn-sm"
+													onclick="return confirm('Remove hospital {{ hospital.name }}?');">
+													<i class="fas fa-trash-alt"></i> Remove
+												</button>
+											</form>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% if hospitals.pages > 1 %}
+						<nav>
+							<ul class="pagination justify-content-center">
+								{% if hospitals.has_prev %}
+								<li class="page-item">
+									<a
+										class="page-link"
+										href="{{ url_for('admin.hospitals', page=hospitals.prev_num) }}"
+										>Previous</a
+									>
+								</li>
+								{% else %}
+								<li class="page-item disabled">
+									<span class="page-link">Previous</span>
+								</li>
+								{% endif %}
+								<li class="page-item disabled">
+									<span class="page-link"
+										>Page {{ hospitals.page }} of {{ hospitals.pages }}</span
+									>
+								</li>
+								{% if hospitals.has_next %}
+								<li class="page-item">
+									<a
+										class="page-link"
+										href="{{ url_for('admin.hospitals', page=hospitals.next_num) }}"
+										>Next</a
+									>
+								</li>
+								{% else %}
+								<li class="page-item disabled">
+									<span class="page-link">Next</span>
+								</li>
+								{% endif %}
+							</ul>
+						</nav>
+						{% endif %} {% else %}
+						<div class="alert alert-info">No hospitals found.</div>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+			<div class="col-12 mb-4">
+				<div class="card shadow-sm rounded-4">
+					<div class="card-header bg-warning text-dark">
+						<h5 class="mb-0">
+							<i class="fas fa-user-plus me-2"></i>Assign Admin to Hospital
+						</h5>
+					</div>
+					<div class="card-body">
+						<form
+							method="POST"
+							action="{{ url_for('admin.assign_admin') }}"
+							class="row g-3">
+							<div class="col-md-5">
+								<label for="admin_id" class="form-label">Admin ID</label>
+								<input
+									type="number"
+									class="form-control"
+									id="admin_id"
+									name="admin_id"
+									required
+									placeholder="Admin ID" />
+							</div>
+							<div class="col-md-5">
+								<label for="hospital_id" class="form-label">Hospital ID</label>
+								<input
+									type="number"
+									class="form-control"
+									id="hospital_id"
+									name="hospital_id"
+									required
+									placeholder="Hospital ID" />
+							</div>
+							<div class="col-md-2 align-self-end">
+								<button type="submit" class="btn btn-warning w-100">
+									<i class="fas fa-user-plus me-1"></i>Assign
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+<style>
+	.nav-link.active {
+		background: #e9ecef;
+		border-radius: 0.5rem;
+	}
+</style>
+{% endblock %}
