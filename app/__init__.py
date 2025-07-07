@@ -17,7 +17,7 @@ def create_app():
     # Configure database URI to point explicitly to instance folder
     app.config.from_mapping(
         SECRET_KEY='dev',
-        SQLALCHEMY_DATABASE_URI='postgresql://flaskuser:icu123@localhost/icuconnectdb',
+        SQLALCHEMY_DATABASE_URI='postgresql://flaskuser:uuitg6oty7bdR9hdL5uTOoIoQTHId4vC@dpg-d1m3n2ali9vc73cot8q0-a.oregon-postgres.render.com:5432/icuconnectdb_vuav',
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS = {
             'pool_size': 10,
