@@ -103,6 +103,9 @@
 									id="bed_number"
 									name="bed_number"
 									required />
+								{% if bed_error %}
+								<div class="text-danger mt-1">{{ bed_error }}</div>
+								{% endif %}
 							</div>
 							<div class="col-md-3">
 								<label for="bed_type" class="form-label">Bed Type</label>
@@ -127,6 +130,9 @@
 									id="bed_number"
 									name="bed_number"
 									required />
+								{% if bed_error %}
+								<div class="text-danger mt-1">{{ bed_error }}</div>
+								{% endif %}
 							</div>
 							<div class="col-md-5">
 								<label for="bed_type" class="form-label">Bed Type</label>

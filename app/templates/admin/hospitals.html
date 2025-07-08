@@ -73,17 +73,50 @@
 		<div class="row">
 			<div class="col-12 mb-4">
 				<div class="card shadow-sm rounded-4">
-					<div class="card-header bg-primary text-white">
+					<div class="card-header bg-primary text-white text-center">
 						<h5 class="mb-0">
 							<i class="fas fa-plus me-2"></i>Add New Hospital
 						</h5>
 					</div>
 					<div class="card-body">
+						<div class="mb-4 text-secondary text-center">
+							<strong
+								>Fill these details to add a new hospital to the system:</strong
+							>
+							<ul class="mb-2 d-inline-block text-start" style="margin: 0 auto">
+								<li>
+									<strong>Hospital Name:</strong> The official name of the
+									hospital. <span class="text-danger">(required)</span>
+								</li>
+								<li>
+									<strong>Verification Code:</strong> A unique code for this
+									hospital (used for secure identification).
+									<span class="text-danger">(required)</span>
+								</li>
+								<li>
+									<strong>Latitude & Longitude:</strong> The geographic
+									coordinates of the hospital (for mapping and location
+									services). <span class="text-danger">(required)</span>
+								</li>
+								<li>
+									<strong>Level (1-6):</strong> Hospital classification.
+									<span class="text-danger">(required)</span><br />
+									<span class="ms-3"
+										>1 = Health Center, 2 = Sub-County Hospital, 3 = County
+										Hospital, 4 = County Referral Hospital, 5 = Regional
+										Referral Hospital, 6 = National Referral Hospital</span
+									>
+								</li>
+							</ul>
+							<div class="text-danger">
+								All fields are required. The verification code must be unique.
+							</div>
+						</div>
 						<form
 							method="POST"
 							action="{{ url_for('admin.add_hospital') }}"
-							class="row g-3">
-							<div class="col-md-5">
+							class="">
+							<div class="mb-3">
 								<label for="name" class="form-label">Hospital Name</label>
 								<input
 									type="text"
@@ -92,7 +125,7 @@
 									name="name"
 									required />
 							</div>
-							<div class="col-md-5">
+							<div class="mb-3">
 								<label for="verification_code" class="form-label"
 									>Verification Code</label
 								>
@@ -103,9 +136,42 @@
 									name="verification_code"
 									required />
 							</div>
-							<div class="col-md-2 align-self-end">
-								<button type="submit" class="btn btn-success w-100">
-									<i class="fas fa-plus me-1"></i>Add
+							<div class="mb-3">
+								<label for="latitude" class="form-label">Latitude</label>
+								<input
+									type="number"
+									step="any"
+									class="form-control"
+									id="latitude"
+									name="latitude"
+									required />
+							</div>
+							<div class="mb-3">
+								<label for="longitude" class="form-label">Longitude</label>
+								<input
+									type="number"
+									step="any"
+									class="form-control"
+									id="longitude"
+									name="longitude"
+									required />
+							</div>
+							<div class="mb-3">
+								<label for="level" class="form-label"
+									>Level <span class="text-muted">(1-6)</span></label
+								>
+								<input
+									type="number"
+									class="form-control"
+									id="level"
+									name="level"
+									min="1"
+									max="6"
+									required />
+							</div>
+							<div class="d-grid">
+								<button type="submit" class="btn btn-success btn-lg">
+									<i class="fas fa-plus me-1"></i>Add Hospital
 								</button>
 							</div>
 						</form>
@@ -127,6 +193,9 @@
 									<tr>
 										<th>Name</th>
 										<th>Verification Code</th>
+										<th>Latitude</th>
+										<th>Longitude</th>
+										<th>Level</th>
 										<th>Actions</th>
 									</tr>
 								</thead>
@@ -135,6 +204,9 @@
 									<tr>
 										<td>{{ hospital.name }}</td>
 										<td>{{ hospital.verification_code }}</td>
+										<td>{{ hospital.latitude }}</td>
+										<td>{{ hospital.longitude }}</td>
+										<td>{{ hospital.level }}</td>
 										<td>
 											<form
 												method="POST"
@@ -192,47 +264,6 @@
 						{% endif %} {% else %}
 						<div class="alert alert-info">No hospitals found.</div>
 						{% endif %}
-					</div>
-				</div>
-			</div>
-			<div class="col-12 mb-4">
-				<div class="card shadow-sm rounded-4">
-					<div class="card-header bg-warning text-dark">
-						<h5 class="mb-0">
-							<i class="fas fa-user-plus me-2"></i>Assign Admin to Hospital
-						</h5>
-					</div>
-					<div class="card-body">
-						<form
-							method="POST"
-							action="{{ url_for('admin.assign_admin') }}"
-							class="row g-3">
-							<div class="col-md-5">
-								<label for="admin_id" class="form-label">Admin ID</label>
-								<input
-									type="number"
-									class="form-control"
-									id="admin_id"
-									name="admin_id"
-									required
-									placeholder="Admin ID" />
-							</div>
-							<div class="col-md-5">
-								<label for="hospital_id" class="form-label">Hospital ID</label>
-								<input
-									type="number"
-									class="form-control"
-									id="hospital_id"
-									name="hospital_id"
-									required
-									placeholder="Hospital ID" />
-							</div>
-							<div class="col-md-2 align-self-end">
-								<button type="submit" class="btn btn-warning w-100">
-									<i class="fas fa-user-plus me-1"></i>Assign
-								</button>
-							</div>
-						</form>
 					</div>
 				</div>
 			</div>

@@ -73,15 +73,16 @@
 		<div class="row">
 			<div class="col-12 mb-4">
 				<div class="card shadow-sm rounded-4">
-					<div class="card-header bg-primary text-white">
+					<div class="card-header bg-primary text-white text-center">
 						<h5 class="mb-0"><i class="fas fa-plus me-2"></i>Add New Admin</h5>
 					</div>
 					<div class="card-body">
-						<form
-							method="POST"
-							action="{{ url_for('admin.add_admin') }}"
-							class="row g-3">
-							<div class="col-md-5">
+						<div class="mb-4 text-secondary text-center">
+							Fill in the details below to create a new admin and assign them to
+							a hospital.
+						</div>
+						<form method="POST" action="{{ url_for('admin.add_admin') }}">
+							<div class="mb-3">
 								<label for="email" class="form-label">Email</label>
 								<input
 									type="email"
@@ -90,7 +91,7 @@
 									name="email"
 									required />
 							</div>
-							<div class="col-md-5">
+							<div class="mb-3">
 								<label for="password" class="form-label">Password</label>
 								<input
 									type="password"
@@ -99,9 +100,26 @@
 									name="password"
 									required />
 							</div>
-							<div class="col-md-2 align-self-end">
-								<button type="submit" class="btn btn-success w-100">
-									<i class="fas fa-plus me-1"></i>Add
+							{% if current_user.privilege_level == 'super' %}
+							<div class="mb-3">
+								<label for="hospital_id" class="form-label"
+									>Assign to Hospital</label
+								>
+								<select
+									class="form-select"
+									id="hospital_id"
+									name="hospital_id"
+									required>
+									<option value="" disabled selected>Select hospital</option>
+									{% for hospital in hospitals %}
+									<option value="{{ hospital.id }}">{{ hospital.name }}</option>
+									{% endfor %}
+								</select>
+							</div>
+							{% endif %}
+							<div class="d-grid">
+								<button type="submit" class="btn btn-success btn-lg">
+									<i class="fas fa-plus me-1"></i>Add Admin
 								</button>
 							</div>
 						</form>

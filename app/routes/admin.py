@@ -64,6 +64,7 @@ def beds():
 @login_required
 @admin_required
 def add_bed():
+    error = None
     if current_user.privilege_level == 'super':
         hospital_id = request.form.get('hospital_id')
     else:
@@ -71,8 +72,21 @@ def add_bed():
     bed_number = request.form.get('bed_number')
     bed_type = request.form.get('bed_type', 'ICU')
     if not bed_number or not hospital_id:
-        flash('Bed number and hospital are required.', 'danger')
-        return redirect(url_for('admin.beds'))
+        error = 'Bed number and hospital are required.'
+    else:
+        existing_bed = Bed.query.filter_by(hospital_id=hospital_id, bed_number=bed_number).first()
+        if existing_bed:
+            error = f'Bed number {bed_number} already exists for this hospital.'
+    if error:
+        # Re-render the beds page with the error
+        page = 1
+        if current_user.privilege_level == 'super':
+            beds = Bed.query.join(Hospital).order_by(Hospital.name, Bed.bed_number).paginate(page=page, per_page=10)
+            hospitals = Hospital.query.order_by(Hospital.name).all()
+        else:
+            beds = Bed.query.filter_by(hospital_id=current_user.hospital_id).order_by(Bed.bed_number).paginate(page=page, per_page=10)
+            hospitals = None
+        return render_template('admin/beds.html', beds=beds, hospitals=hospitals, bed_error=error)
     try:
         bed = Bed(hospital_id=hospital_id, bed_number=bed_number, bed_type=bed_type)
         db.session.add(bed)
@@ -107,9 +121,11 @@ def admins():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
         admins = Admin.query.paginate(page=page, per_page=10)
+        hospitals = Hospital.query.order_by(Hospital.name).all()
     else:
         admins = Admin.query.filter_by(hospital_id=current_user.hospital_id).paginate(page=page, per_page=10)
-    return render_template('admin/admins.html', admins=admins)
+        hospitals = None
+    return render_template('admin/admins.html', admins=admins, hospitals=hospitals)
 
 @admin_bp.route('/admins/add', methods=['POST'])
 @login_required
@@ -118,11 +134,15 @@ def add_admin():
     from flask import request
     email = request.form.get('email')
     password = request.form.get('password')
-    if not email or not password:
-        flash('Email and password are required.', 'danger')
+    hospital_id = request.form.get('hospital_id')
+    if not email or not password or (current_user.privilege_level == 'super' and not hospital_id):
+        flash('Email, password, and hospital are required.', 'danger')
         return redirect(url_for('admin.admins'))
     try:
-        admin = Admin(email=email, hospital_id=current_user.hospital_id)
+        if current_user.privilege_level == 'super':
+            admin = Admin(email=email, hospital_id=int(hospital_id))
+        else:
+            admin = Admin(email=email, hospital_id=current_user.hospital_id)
         admin.set_password(password)
         db.session.add(admin)
         db.session.commit()
@@ -169,11 +189,21 @@ def add_hospital():
     from flask import request
     name = request.form.get('name')
     verification_code = request.form.get('verification_code')
-    if not name or not verification_code:
-        flash('Name and verification code are required.', 'danger')
+    latitude = request.form.get('latitude')
+    longitude = request.form.get('longitude')
+    level = request.form.get('level')
+
+    if not name or not verification_code or not latitude or not longitude or not level:
+        flash('All fields are required.', 'danger')
         return redirect(url_for('admin.hospitals'))
     try:
-        hospital = Hospital(name=name, verification_code=verification_code)
+        hospital = Hospital(
+            name=name,
+            verification_code=verification_code,
+            latitude=float(latitude),
+            longitude=float(longitude),
+            level=int(level)
+        )
         db.session.add(hospital)
         db.session.commit()
         flash(f'Hospital {name} added successfully.', 'success')
