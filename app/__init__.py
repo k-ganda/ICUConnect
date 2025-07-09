@@ -15,7 +15,8 @@ socketio = SocketIO()
 def create_app():
     app = Flask(__name__)
 
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": "https://your-frontend-domain.com"}}, supports_credentials=True)
+
     
     # Configure database URI to point explicitly to instance folder
     app.config.from_mapping(
