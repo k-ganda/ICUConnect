@@ -7,7 +7,7 @@ backlog = 2048
 
 # Worker processes
 workers = 1  # Reduced to 1 for WebSocket support
-worker_class = "eventlet"  # Changed from sync to eventlet for WebSocket support
+worker_class = "gevent"  # Changed from eventlet to gevent for WebSocket support
 worker_connections = 1000
 timeout = 30
 keepalive = 2

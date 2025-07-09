@@ -13,8 +13,8 @@ login_manager = LoginManager()
 
 # Determine async mode based on available packages
 try:
-    import eventlet
-    async_mode = 'eventlet'
+    import gevent
+    async_mode = 'gevent'
 except ImportError:
     async_mode = 'threading'
 
