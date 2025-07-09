@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 from app.utils import get_current_local_time, to_local_time
 from flask_socketio import SocketIO
+from flask_cors import CORS
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -13,6 +14,8 @@ socketio = SocketIO()
 
 def create_app():
     app = Flask(__name__)
+
+    CORS(app, resources={r"/*": {"origins": "*"}})
     
     # Configure database URI to point explicitly to instance folder
     app.config.from_mapping(

@@ -14,6 +14,36 @@
 
 ## ⚙️ Project Setup
 
+### Directory Structure
+
+```
+ICUConnect/
+├── app/
+│   ├── __init__.py              # Application factory
+│   ├── models.py                # Database models
+│   ├── utils.py                 # Utility functions
+│   ├── routes/                  # Route handlers
+│   │   ├── auth.py             # Authentication routes
+│   │   ├── admin.py            # Admin dashboard routes
+│   │   ├── user_routes.py      # User dashboard routes
+│   │   ├── admission_routes.py # Patient admission routes
+│   │   ├── discharge_routes.py # Patient discharge routes
+│   │   ├── referral_routes.py  # Referral management routes
+│   │   ├── transfer_routes.py  # Patient transfer routes
+│   │   └── prediction_routes.py # ML prediction routes
+│   ├── templates/              # HTML templates
+│   │   ├── auth/              # Authentication templates
+│   │   ├── admin/             # Admin dashboard templates
+│   │   └── users/             # User dashboard templates
+│   ├── static/                # Static assets (CSS, JS, images)
+│   └── Dataset/               # Training data for ML model
+├── models/                    # Trained ML models
+├── migrations/                # Database migrations
+├── tests/                     # Test suite
+├── deployment/                # Deployment configuration
+└── run.py                     # Application entry point
+```
+
 ## Steps to Run The App
 
 1. **📁 Clone the Repository**
@@ -137,6 +167,6 @@ Jupyter Notebook – ML Model Development
 
 Kathrine Ganda
 
-k.ganda@alustudent.com 
+k.ganda@alustudent.com
 
 Final Year Capstone Project - African Leadership University
