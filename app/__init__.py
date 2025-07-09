@@ -10,12 +10,27 @@ from flask_cors import CORS
 
 db = SQLAlchemy()
 login_manager = LoginManager()
-socketio = SocketIO()
+
+# Determine async mode based on available packages
+try:
+    import eventlet
+    async_mode = 'eventlet'
+except ImportError:
+    async_mode = 'threading'
+
+socketio = SocketIO(
+    cors_allowed_origins="*", 
+    async_mode=async_mode,
+    logger=True,
+    engineio_logger=True,
+    ping_timeout=60,
+    ping_interval=25
+)
 
 def create_app():
     app = Flask(__name__)
 
-    CORS(app, resources={r"/*": {"origins": "https://your-frontend-domain.com"}}, supports_credentials=True)
+    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
     
     # Configure database URI to point explicitly to instance folder
@@ -36,7 +51,15 @@ def create_app():
     migrate = Migrate(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
-    socketio.init_app(app, cors_allowed_origins="*")
+    socketio.init_app(
+        app, 
+        cors_allowed_origins="*", 
+        async_mode=async_mode,
+        logger=True,
+        engineio_logger=True,
+        ping_timeout=60,
+        ping_interval=25
+    )
 
     # Add teardown appcontext
     @app.teardown_appcontext
@@ -74,6 +97,50 @@ def create_app():
         app.register_blueprint(prediction_bp, url_prefix='/api')
         app.register_blueprint(referral_bp, url_prefix='/referrals')
         app.register_blueprint(transfer_bp, url_prefix='/transfers')
+        
+        # Test route for WebSocket connectivity
+        @app.route('/test-websocket')
+        def test_websocket():
+            return {'status': 'WebSocket server is running'}
+        
+        # WebSocket event handlers
+        @socketio.on('connect')
+        def handle_connect():
+            print('Client connected')
+            socketio.emit('connected', {'data': 'Connected'})
+        
+        @socketio.on('disconnect')
+        def handle_disconnect():
+            print('Client disconnected')
+        
+        @socketio.on('error')
+        def handle_error(error):
+            print(f'WebSocket error: {error}')
+        
+        # Handle bed stats updates
+        @socketio.on('bed_stats_update')
+        def handle_bed_stats_update(data):
+            socketio.emit('bed_stats_update', data)
+        
+        # Handle transfer status updates
+        @socketio.on('transfer_status_update')
+        def handle_transfer_status_update(data):
+            socketio.emit('transfer_status_update', data)
+        
+        # Handle new referrals
+        @socketio.on('new_referral')
+        def handle_new_referral(data):
+            socketio.emit('new_referral', data)
+        
+        # Handle referral responses
+        @socketio.on('referral_response')
+        def handle_referral_response(data):
+            socketio.emit('referral_response', data)
+        
+        # Handle referral escalations
+        @socketio.on('referral_escalated')
+        def handle_referral_escalated(data):
+            socketio.emit('referral_escalated', data)
         
         # Global context processor for all templates
         @app.context_processor
