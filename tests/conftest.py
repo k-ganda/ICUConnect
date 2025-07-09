@@ -60,7 +60,8 @@ def create_test_data():
         latitude=-0.1022,
         longitude=34.7617,
         level=1,
-        notification_duration=120
+        notification_duration=120,
+        is_test=True
     )
     hospital2 = Hospital(
         name='Test Hospital 2', 
@@ -68,7 +69,8 @@ def create_test_data():
         latitude=-0.1023,
         longitude=34.7618,
         level=2,
-        notification_duration=180
+        notification_duration=180,
+        is_test=True
     )
     
     db.session.add(hospital1)

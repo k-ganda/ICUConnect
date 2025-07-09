@@ -2,6 +2,8 @@ from datetime import datetime, date
 import pytz
 from flask import g
 from flask_login import current_user
+from flask_mail import Message
+from flask import current_app
 
 def get_local_timezone():
     """Get the local timezone based on the hospital's location"""
@@ -49,4 +51,11 @@ def local_date_to_utc(local_date, hospital=None):
         return None
     timezone = hospital.get_timezone() if hospital else get_local_timezone()
     local_dt = datetime.combine(local_date, datetime.min.time())
-    return to_utc_time(local_dt, hospital) 
+    return to_utc_time(local_dt, hospital)
+
+def send_email(subject, recipients, body, html=None):
+    """Send an email using Flask-Mail."""
+    from app import mail  # Import here to avoid circular import
+    from flask_mail import Message
+    msg = Message(subject, recipients=recipients, body=body, html=html)
+    mail.send(msg) 

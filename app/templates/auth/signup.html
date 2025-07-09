@@ -31,6 +31,15 @@ content %}
 						required />
 				</div>
 				<div class="mb-3">
+					<label class="form-label">Hospital</label>
+					<select class="form-select" name="hospital" required>
+						<option selected disabled value="">Select hospital</option>
+						{% for hospital in hospitals %}
+						<option value="{{ hospital.id }}">{{ hospital.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="mb-3">
 					<label class="form-label">Password</label>
 					<div class="input-group">
 						<input
@@ -48,15 +57,6 @@ content %}
 							<i class="fas fa-eye"></i>
 						</button>
 					</div>
-				</div>
-				<div class="mb-3">
-					<label class="form-label">Hospital</label>
-					<select class="form-select" name="hospital" required>
-						<option selected disabled value="">Select hospital</option>
-						{% for hospital in hospitals %}
-						<option value="{{ hospital.id }}">{{ hospital.name }}</option>
-						{% endfor %}
-					</select>
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Employment ID</label>
@@ -104,9 +104,19 @@ content %}
 				<div class="mb-3">
 					<i class="fas fa-envelope-open-text fa-4x text-success"></i>
 				</div>
-				<h4>Account Created Successfully!</h4>
-				<p>Your account is pending approval from the administrator.</p>
-				<p>You'll receive an email notification once approved.</p>
+				<h4>Account Created!</h4>
+				<p>
+					If your email address is correct, you will receive a verification
+					email shortly.
+				</p>
+				<p>
+					Please check your inbox (and spam folder) and click the verification
+					link to activate your account.
+				</p>
+				<p>
+					You will not be able to log in until your email is verified and your
+					account is approved by an admin.
+				</p>
 			</div>
 			<div class="modal-footer justify-content-center">
 				<a href="{{ url_for('auth.login') }}" class="btn btn-success px-4">

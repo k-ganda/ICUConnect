@@ -7,24 +7,24 @@ from app import db
 class TestHospitalComprehensive:
     def test_unique_constraints(self, app):
         with app.app_context():
-            hospital1 = Hospital(name='Unique Hospital', verification_code='UNIQUE1')
+            hospital1 = Hospital(name='Unique Hospital', verification_code='UNIQUE1', is_test=True)
             db.session.add(hospital1)
             db.session.commit()
             # Duplicate name
-            hospital2 = Hospital(name='Unique Hospital', verification_code='UNIQUE2')
+            hospital2 = Hospital(name='Unique Hospital', verification_code='UNIQUE2', is_test=True)
             db.session.add(hospital2)
             with pytest.raises(Exception):
                 db.session.commit()
             db.session.rollback()
             # Duplicate verification_code
-            hospital3 = Hospital(name='Another Hospital', verification_code='UNIQUE1')
+            hospital3 = Hospital(name='Another Hospital', verification_code='UNIQUE1', is_test=True)
             db.session.add(hospital3)
             with pytest.raises(Exception):
                 db.session.commit()
             db.session.rollback()
     def test_default_values(self, app):
         with app.app_context():
-            hospital = Hospital(name='Defaults', verification_code='DEF123')
+            hospital = Hospital(name='Defaults', verification_code='DEF123', is_test=True)
             db.session.add(hospital)
             db.session.commit()
             assert hospital.is_active is True
@@ -32,7 +32,7 @@ class TestHospitalComprehensive:
             assert hospital.notification_duration == 120
     def test_relationships(self, app):
         with app.app_context():
-            hospital = Hospital(name='RelTest', verification_code='REL123')
+            hospital = Hospital(name='RelTest', verification_code='REL123', is_test=True)
             db.session.add(hospital)
             db.session.commit()
             admin = Admin(hospital_id=hospital.id, email='reladmin@test.com')
@@ -45,7 +45,7 @@ class TestHospitalComprehensive:
             assert bed in hospital.beds
     def test_invalid_timezone(self, app):
         with app.app_context():
-            hospital = Hospital(name='BadTZ', verification_code='BADTZ', timezone='Invalid/Zone')
+            hospital = Hospital(name='BadTZ', verification_code='BADTZ', timezone='Invalid/Zone', is_test=True)
             db.session.add(hospital)
             db.session.commit()
             with pytest.raises(Exception):
@@ -169,7 +169,7 @@ class TestReferralRequestComprehensive:
     def test_status_and_urgency_levels(self, app):
         with app.app_context():
             h1 = Hospital.query.first()
-            h2 = Hospital(name='Target', verification_code='TGT1')
+            h2 = Hospital(name='Target', verification_code='TGT1', is_test=True)
             db.session.add(h2)
             db.session.commit()
             for status in ['Pending', 'Accepted', 'Rejected', 'Escalated']:

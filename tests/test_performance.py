@@ -402,6 +402,6 @@ class TestStressTesting:
                 assert referrals > 0
                 
             except Exception as e:
-                # Should handle errors gracefully
+                
                 db.session.rollback()
-                assert True  # Error was handled 
+                assert True  

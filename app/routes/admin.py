@@ -4,6 +4,8 @@ from flask_login import login_required, current_user
 from datetime import datetime
 from app.models import User, Admin, Bed, Hospital  # Add Hospital import
 from app import db
+from app.utils import send_email
+import secrets
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -21,9 +23,9 @@ def admin_required(f):
 def dashboard():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
-        pending_users = User.query.filter_by(is_approved=False).paginate(page=page, per_page=10)
+        pending_users = User.query.filter_by(is_approved=False).order_by(User.created_at.desc()).paginate(page=page, per_page=10)
     else:
-        pending_users = User.query.filter_by(hospital_id=current_user.hospital_id, is_approved=False).paginate(page=page, per_page=10)
+        pending_users = User.query.filter_by(hospital_id=current_user.hospital_id, is_approved=False).order_by(User.created_at.desc()).paginate(page=page, per_page=10)
     return render_template('admin/dashboard.html', pending_users=pending_users)
 
 @admin_bp.route('/approve-user/<int:user_id>')
@@ -41,6 +43,15 @@ def approve_user(user_id):
         user.approval_date = datetime.utcnow()
         db.session.commit()
         flash(f'Successfully approved {user.email}', 'success')
+        # Send approval email to user
+        try:
+            send_email(
+                subject="Your ICUConnect Account Has Been Approved!",
+                recipients=[user.email],
+                body=f"""Hello {user.name},\n\nYour account has been approved by your hospital admin. You can now log in to ICUConnect.\n\nThank you!\n\n- ICUConnect Team"""
+            )
+        except Exception as e:
+            flash(f'User approved, but failed to send approval email: {e}', 'warning')
     except Exception as e:
         db.session.rollback()
         flash(f'Error approving user: {e}', 'danger')
@@ -120,10 +131,10 @@ def remove_bed(bed_id):
 def admins():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
-        admins = Admin.query.paginate(page=page, per_page=10)
+        admins = Admin.query.order_by(Admin.created_at.desc()).paginate(page=page, per_page=10)
         hospitals = Hospital.query.order_by(Hospital.name).all()
     else:
-        admins = Admin.query.filter_by(hospital_id=current_user.hospital_id).paginate(page=page, per_page=10)
+        admins = Admin.query.filter_by(hospital_id=current_user.hospital_id).order_by(Admin.created_at.desc()).paginate(page=page, per_page=10)
         hospitals = None
     return render_template('admin/admins.html', admins=admins, hospitals=hospitals)
 
@@ -131,22 +142,37 @@ def admins():
 @login_required
 @admin_required
 def add_admin():
-    from flask import request
+    from flask import request, url_for
     email = request.form.get('email')
-    password = request.form.get('password')
+    name = request.form.get('name')
     hospital_id = request.form.get('hospital_id')
-    if not email or not password or (current_user.privilege_level == 'super' and not hospital_id):
-        flash('Email, password, and hospital are required.', 'danger')
+    # Remove password from form (no longer needed)
+    if not email or not name or (current_user.privilege_level == 'super' and not hospital_id):
+        flash('Email, name, and hospital are required.', 'danger')
         return redirect(url_for('admin.admins'))
     try:
         if current_user.privilege_level == 'super':
-            admin = Admin(email=email, hospital_id=int(hospital_id))
+            admin = Admin(email=email, hospital_id=int(hospital_id), name=name)
         else:
-            admin = Admin(email=email, hospital_id=current_user.hospital_id)
-        admin.set_password(password)
+            admin = Admin(email=email, hospital_id=current_user.hospital_id, name=name)
+        # Generate reset token
+        reset_token = secrets.token_urlsafe(32)
+        admin.reset_token = reset_token
         db.session.add(admin)
         db.session.commit()
         flash(f'Admin {email} added successfully.', 'success')
+        # Send notification email with reset link
+        try:
+            from app.models import Hospital
+            hospital = Hospital.query.get(admin.hospital_id)
+            reset_url = url_for('admin.reset_password', token=reset_token, _external=True)
+            send_email(
+                subject="You have been added as an ICUConnect Admin",
+                recipients=[admin.email],
+                body=f"""Hello {admin.name},\n\nYou have been added as an admin for the hospital: {hospital.name}.\n\nTo set your password, please click the link below:\n{reset_url}\n\nIf you did not expect this, please ignore this email.\n\n- ICUConnect Team"""
+            )
+        except Exception as e:
+            flash(f'Admin added, but failed to send notification email: {e}', 'warning')
     except Exception as e:
         db.session.rollback()
         flash(f'Error adding admin: {e}', 'danger')
@@ -177,7 +203,7 @@ def hospitals():
     if current_user.privilege_level != 'super':
         abort(403)
     page = request.args.get('page', 1, type=int)
-    hospitals = Hospital.query.paginate(page=page, per_page=10)
+    hospitals = Hospital.query.order_by(Hospital.created_at.desc()).paginate(page=page, per_page=10)
     return render_template('admin/hospitals.html', hospitals=hospitals)
 
 @admin_bp.route('/hospitals/add', methods=['POST'])
@@ -250,3 +276,38 @@ def assign_admin():
         db.session.rollback()
         flash(f'Error assigning admin: {e}', 'danger')
     return redirect(url_for('admin.hospitals'))
+
+@admin_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    from app.models import Admin
+    admin = Admin.query.filter_by(reset_token=token).first()
+    error_message = None
+    if not admin:
+        flash('Invalid or expired password reset link.', 'danger')
+        return redirect(url_for('admin.admins'))
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        import re
+        if not password or not confirm_password:
+            error_message = 'Please fill in all fields.'
+        elif password != confirm_password:
+            error_message = 'Passwords do not match.'
+        elif len(password) < 8 or not re.search(r'[A-Z]', password) or not re.search(r'[a-z]', password) or not re.search(r'\d', password) or not re.search(r'[^A-Za-z0-9]', password):
+            error_message = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.'
+        else:
+            admin.set_password(password)
+            admin.reset_token = None
+            db.session.commit()
+            flash('Password set successfully! You can now log in.', 'success')
+            # Send confirmation email
+            try:
+                send_email(
+                    subject="ICUConnect Password Reset Successful",
+                    recipients=[admin.email],
+                    body=f"Hello {admin.name},\n\nYour password was reset successfully. You can now log in with your new password.\n\n- ICUConnect Team"
+                )
+            except Exception as e:
+                flash(f'Password reset, but failed to send confirmation email: {e}', 'warning')
+            return redirect(url_for('auth.login'))
+    return render_template('admin/reset_password.html', token=token, error_message=error_message)

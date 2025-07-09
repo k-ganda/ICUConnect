@@ -11,9 +11,11 @@ import os
 from app.utils import get_current_local_time, to_local_time
 from flask_socketio import SocketIO
 from flask_cors import CORS
+from flask_mail import Mail
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+mail = Mail()
 
 # Use eventlet for WebSocket support
 async_mode = 'eventlet'
@@ -29,6 +31,8 @@ socketio = SocketIO(
     allow_upgrades=True,
     transports=['websocket', 'polling']
 )
+
+
 
 def create_app():
     app = Flask(__name__)
@@ -49,11 +53,21 @@ def create_app():
         }
     )
     
+    app.config.update(
+        MAIL_SERVER='smtp.gmail.com',
+        MAIL_PORT=587,
+        MAIL_USE_TLS=True,
+        MAIL_USERNAME='k.ganda@alustudent.com',
+        MAIL_PASSWORD='zsdxdvytquvgepjk',
+        MAIL_DEFAULT_SENDER='k.ganda@alustudent.com',
+    )
+    
     # Initialize extensions
     db.init_app(app)
     migrate = Migrate(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    mail.init_app(app)
     socketio.init_app(
         app, 
         cors_allowed_origins="*", 

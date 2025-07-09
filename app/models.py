@@ -15,6 +15,7 @@ class Hospital(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     verification_code = db.Column(db.String(20), unique=True)
     is_active = db.Column(db.Boolean, default=True)
+    is_test = db.Column(db.Boolean, default=False)  # True for test/demo hospitals
     created_at = db.Column(db.DateTime, default=datetime.now)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
@@ -48,12 +49,14 @@ class Admin(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hospital_id = db.Column(db.Integer, db.ForeignKey('hospitals.id'), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=True)  # Full name of the admin (temporarily nullable for migration)
     password_hash = db.Column(db.String(512))
     privilege_level = db.Column(db.String(20), default='hospital')  # 'super' or 'hospital'
     verification_docs = db.Column(db.String(200))  # Path to uploaded docs
     is_verified = db.Column(db.Boolean, default=False)
     created_by = db.Column(db.Integer)  # ID of admin who created this account
     created_at = db.Column(db.DateTime, default=datetime.now)
+    reset_token = db.Column(db.String(128), nullable=True)
     
     # Password handling
     def set_password(self, password):
@@ -80,6 +83,8 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     name = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(512))
+    is_verified = db.Column(db.Boolean, default=False)
+    verification_token = db.Column(db.String(128), nullable=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

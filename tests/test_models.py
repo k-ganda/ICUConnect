@@ -19,7 +19,8 @@ class TestHospital:
                 name=f'Test Hospital {TEST_RUN_ID}',
                 verification_code=f'TEST{TEST_RUN_ID}',
                 timezone='Africa/Kigali',
-                notification_duration=120
+                notification_duration=120,
+                is_test=True
             )
             db.session.add(hospital)
             db.session.commit()
