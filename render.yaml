@@ -3,7 +3,7 @@ services:
     name: icu-occupancy-predictor
     env: python
     buildCommand: pip install -r deployment/requirements.txt
-    startCommand: gunicorn --worker-class sync --workers 1 --bind 0.0.0.0:$PORT run:app
+    startCommand: gunicorn --worker-class eventlet --workers 1 --bind 0.0.0.0:$PORT run:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

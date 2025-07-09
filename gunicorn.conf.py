@@ -7,7 +7,7 @@ backlog = 2048
 
 # Worker processes
 workers = 1  # Single worker for WebSocket support
-worker_class = "sync"  # Using sync with threading mode for SocketIO
+worker_class = "eventlet"  # Using eventlet for WebSocket support
 worker_connections = 1000
 timeout = 30
 keepalive = 2

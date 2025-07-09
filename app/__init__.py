@@ -11,8 +11,8 @@ from flask_cors import CORS
 db = SQLAlchemy()
 login_manager = LoginManager()
 
-# Use threading mode for maximum compatibility
-async_mode = 'threading'
+# Use eventlet for WebSocket support
+async_mode = 'eventlet'
 
 socketio = SocketIO(
     cors_allowed_origins="*", 
