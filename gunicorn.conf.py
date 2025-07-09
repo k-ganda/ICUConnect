@@ -6,8 +6,8 @@ bind = "0.0.0.0:" + os.environ.get("PORT", "8000")
 backlog = 2048
 
 # Worker processes
-workers = 1  # Reduced to 1 for WebSocket support
-worker_class = "gevent"  # Changed from eventlet to gevent for WebSocket support
+workers = 1  # Single worker for WebSocket support
+worker_class = "sync"  # Using sync with threading mode for SocketIO
 worker_connections = 1000
 timeout = 30
 keepalive = 2

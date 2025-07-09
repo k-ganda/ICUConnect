@@ -11,12 +11,8 @@ from flask_cors import CORS
 db = SQLAlchemy()
 login_manager = LoginManager()
 
-# Determine async mode based on available packages
-try:
-    import gevent
-    async_mode = 'gevent'
-except ImportError:
-    async_mode = 'threading'
+# Use threading mode for maximum compatibility
+async_mode = 'threading'
 
 socketio = SocketIO(
     cors_allowed_origins="*", 
@@ -24,7 +20,10 @@ socketio = SocketIO(
     logger=True,
     engineio_logger=True,
     ping_timeout=60,
-    ping_interval=25
+    ping_interval=25,
+    max_http_buffer_size=1e8,
+    allow_upgrades=True,
+    transports=['websocket', 'polling']
 )
 
 def create_app():
@@ -58,7 +57,10 @@ def create_app():
         logger=True,
         engineio_logger=True,
         ping_timeout=60,
-        ping_interval=25
+        ping_interval=25,
+        max_http_buffer_size=1e8,
+        allow_upgrades=True,
+        transports=['websocket', 'polling']
     )
 
     # Add teardown appcontext
