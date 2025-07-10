@@ -16,8 +16,6 @@ def client():
         'SQLALCHEMY_TRACK_MODIFICATIONS': False,
     })
     with app.app_context():
-        db.drop_all()  # Ensure a clean database
-        db.create_all()
         # Create two hospitals
         hospital1 = Hospital(
             name='Test Hospital 1',

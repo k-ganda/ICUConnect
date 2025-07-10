@@ -140,7 +140,8 @@ def initiate_referral():
             patient_gender=data.get('patient_gender'),
             primary_diagnosis=data.get('primary_diagnosis'),
             current_treatment=data.get('current_treatment'),
-            reason_for_referral=data.get('reason_for_referral'),
+            # Use primary_diagnosis if reason_for_referral is missing or empty
+            reason_for_referral=(data.get('reason_for_referral') or data.get('primary_diagnosis')),
             urgency_level=data.get('urgency_level'),
             special_requirements=data.get('special_requirements', ''),
             status='Pending'
