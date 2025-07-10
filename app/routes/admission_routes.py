@@ -7,6 +7,7 @@ from app.models import Hospital, Admission, Bed
 from app.utils import get_current_local_time, to_utc_time, to_local_time, local_date_to_utc, get_local_timezone
 import pytz
 from app import socketio
+import logging
 
 admission_bp = Blueprint('admission', __name__)
 
@@ -136,13 +137,15 @@ def available_beds():
             hospital_id=hospital.id, 
             is_occupied=False
         ).order_by(Bed.bed_number.asc()).all()
-
-    return jsonify({
+    response = {
+        'success': True,
         'availableBeds': [{
             'number': bed.bed_number  # Match frontend expectation
         } for bed in beds],
         'count': len(beds)
-    })
+    }
+    current_app.logger.debug(f"Available beds response: {response}")
+    return jsonify(response)
     
 @admission_bp.route('/api/admit', methods=['POST'])
 @login_required

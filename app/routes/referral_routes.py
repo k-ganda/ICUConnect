@@ -7,6 +7,7 @@ from app.utils import get_current_local_time, to_utc_time
 import json
 from flask_socketio import emit
 from app import socketio
+import logging
 
 referral_bp = Blueprint('referral', __name__)
 
@@ -93,15 +94,19 @@ def referrals():
 def initiate_referral():
     """Start a new referral request for a new patient"""
     try:
-        data = request.get_json()
-        print(f"Received data: {data}")  # Debug log
+        try:
+            data = request.get_json(force=True)
+        except Exception as e:
+            current_app.logger.error(f"Invalid JSON: {e}")
+            return jsonify({'success': False, 'message': 'Invalid JSON'}), 400
+        current_app.logger.debug(f"Received data: {data}")
         requesting_hospital = Hospital.query.get(current_user.hospital_id)
         target_hospital_id = data.get('target_hospital_id')
-        print(f"Target hospital ID: {target_hospital_id}, Type: {type(target_hospital_id)}")  # Debug log
+        current_app.logger.debug(f"Target hospital ID: {target_hospital_id}, Type: {type(target_hospital_id)}")
         
         # Validate inputs
         if not target_hospital_id:
-            print(f"Target hospital ID validation failed: {target_hospital_id}")  # Debug log
+            current_app.logger.error(f"Target hospital ID validation failed: {target_hospital_id}")
             return jsonify({
                 'success': False,
                 'message': 'Missing target hospital'
@@ -111,7 +116,7 @@ def initiate_referral():
         try:
             target_hospital_id = int(target_hospital_id)
         except (ValueError, TypeError):
-            print(f"Target hospital ID is not a valid integer: {target_hospital_id}")  # Debug log
+            current_app.logger.error(f"Target hospital ID is not a valid integer: {target_hospital_id}")
             return jsonify({
                 'success': False,
                 'message': 'Invalid target hospital ID format'
@@ -120,6 +125,7 @@ def initiate_referral():
         # Check if target hospital has available beds
         target_hospital = Hospital.query.get(target_hospital_id)
         if not target_hospital or target_hospital.available_beds <= 0:
+            current_app.logger.error(f"Target hospital {target_hospital_id} has no available beds")
             return jsonify({
                 'success': False,
                 'message': 'Target hospital has no available beds'
@@ -132,26 +138,26 @@ def initiate_referral():
             patient_id=None,  # No existing admission
             patient_age=data.get('patient_age'),
             patient_gender=data.get('patient_gender'),
-            primary_diagnosis=data.get('primary_diagnosis', ''),
-            current_treatment=data.get('current_treatment', ''),
-            reason_for_referral=data.get('reason', ''),
-            urgency_level=data.get('priority', 'Medium'),
+            primary_diagnosis=data.get('primary_diagnosis'),
+            current_treatment=data.get('current_treatment'),
+            reason_for_referral=data.get('reason_for_referral'),
+            urgency_level=data.get('urgency_level'),
             special_requirements=data.get('special_requirements', ''),
             status='Pending'
         )
         
-        print(f"Creating referral: from {requesting_hospital.name} (ID: {requesting_hospital.id}) to {target_hospital.name} (ID: {target_hospital_id})")
+        current_app.logger.info(f"Creating referral: from {requesting_hospital.name} (ID: {requesting_hospital.id}) to {target_hospital.name} (ID: {target_hospital_id})")
         
         db.session.add(referral)
         db.session.commit()
         
-        print(f"Referral created successfully with ID: {referral.id}")
+        current_app.logger.info(f"Referral created successfully with ID: {referral.id}")
         
         # Get target hospital's notification duration setting
         notification_duration = target_hospital.notification_duration
-        print(f"DEBUG: Target hospital ID: {target_hospital_id}")
-        print(f"DEBUG: Target hospital name: {target_hospital.name}")
-        print(f"DEBUG: Target hospital notification duration: {notification_duration}")
+        current_app.logger.debug(f"DEBUG: Target hospital ID: {target_hospital_id}")
+        current_app.logger.debug(f"DEBUG: Target hospital name: {target_hospital.name}")
+        current_app.logger.debug(f"DEBUG: Target hospital notification duration: {notification_duration}")
         
         referral_data = {
             'id': referral.id,
@@ -166,7 +172,7 @@ def initiate_referral():
             'requesting_hospital': referral.requesting_hospital.name,
             'time_remaining': notification_duration
         }
-        print(f"DEBUG: Sending referral_data with time_remaining: {referral_data['time_remaining']}")
+        current_app.logger.debug(f"DEBUG: Sending referral_data with time_remaining: {referral_data['time_remaining']}")
         socketio.emit('new_referral', referral_data)
         
         return jsonify({
@@ -178,6 +184,7 @@ def initiate_referral():
         
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Error initiating referral: {e}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -188,10 +195,21 @@ def initiate_referral():
 def respond_to_referral():
     """Handle hospital response to referral request"""
     try:
-        data = request.get_json()
+        try:
+            data = request.get_json(force=True)
+        except Exception as e:
+            current_app.logger.error(f"Invalid JSON: {e}")
+            return jsonify({'success': False, 'message': 'Invalid JSON'}), 400
+        current_app.logger.debug(f"Received data: {data}")
         responding_hospital = Hospital.query.get(current_user.hospital_id)
         referral_id = data.get('referral_id')
+        if not referral_id:
+            current_app.logger.error("Missing referral_id")
+            return jsonify({'success': False, 'message': 'Missing referral_id'}), 400
         response_type = data.get('response_type')  # 'accept' or 'reject'
+        if not response_type:
+            current_app.logger.error("Missing response_type")
+            return jsonify({'success': False, 'message': 'Missing response_type'}), 400
         response_message = data.get('response_message', '')
         
         # Get referral request
@@ -202,6 +220,7 @@ def respond_to_referral():
         ).first()
         
         if not referral:
+            current_app.logger.error(f"Referral request not found or already processed for ID: {referral_id}")
             return jsonify({
                 'success': False,
                 'message': 'Referral request not found or already processed'
@@ -220,6 +239,7 @@ def respond_to_referral():
             if available_bed:
                 available_bed.is_occupied = True  # Reserve the bed
             else:
+                current_app.logger.error(f"No available beds to book for referral ID: {referral_id}")
                 return jsonify({'success': False, 'message': 'No available beds to book!'}), 400
 
             # Create patient transfer
@@ -255,9 +275,9 @@ def respond_to_referral():
                 'patient_gender': transfer.patient_gender,
                 'admitted_at': transfer.admitted_at.isoformat() if transfer.admitted_at else None
             }
-            print("Emitting transfer_status_update:", transfer_data)
+            current_app.logger.debug("Emitting transfer_status_update:", transfer_data)
             socketio.emit('transfer_status_update', transfer_data)
-            print("Emitted transfer_status_update")
+            current_app.logger.debug("Emitted transfer_status_update")
 
             # Emit bed_stats_update for real-time dashboard update
             target_hospital = Hospital.query.get(referral.target_hospital_id)
@@ -312,6 +332,7 @@ def respond_to_referral():
         
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Error responding to referral: {e}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -322,14 +343,15 @@ def respond_to_referral():
 def pending_referrals():
     """Get pending referrals where current hospital is the target"""
     try:
-        print(f"DEBUG: User authenticated: {current_user.is_authenticated}")
-        print(f"DEBUG: Current user: {current_user}")
-        print(f"DEBUG: Current user hospital_id: {current_user.hospital_id}")
+        current_app.logger.debug(f"DEBUG: User authenticated: {current_user.is_authenticated}")
+        current_app.logger.debug(f"DEBUG: Current user: {current_user}")
+        current_app.logger.debug(f"DEBUG: Current user hospital_id: {current_user.hospital_id}")
         
         hospital = Hospital.query.get(current_user.hospital_id)
-        print(f"DEBUG: Hospital found: {hospital}")
+        current_app.logger.debug(f"DEBUG: Hospital found: {hospital}")
         
         if not hospital:
+            current_app.logger.error(f"Hospital not found for pending referrals: {current_user.hospital_id}")
             return jsonify({
                 'success': False,
                 'message': 'Hospital not found'
@@ -340,7 +362,7 @@ def pending_referrals():
             status='Pending'
         ).all()
         
-        print(f"DEBUG: Found {len(pending)} pending referrals")
+        current_app.logger.debug(f"DEBUG: Found {len(pending)} pending referrals")
 
         # Get hospital's notification duration setting
         hospital = Hospital.query.get(current_user.hospital_id)
@@ -364,14 +386,14 @@ def pending_referrals():
                 'time_remaining': max(0, notification_duration - elapsed)
             })
 
-        print(f"DEBUG: Returning {len(referrals_data)} referrals")
+        current_app.logger.debug(f"DEBUG: Returning {len(referrals_data)} referrals")
         return jsonify({
             'success': True,
             'referrals': referrals_data
         })
 
     except Exception as e:
-        print(f"DEBUG: Error in pending_referrals: {str(e)}")
+        current_app.logger.error(f"DEBUG: Error in pending_referrals: {str(e)}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -382,29 +404,27 @@ def pending_referrals():
 def escalate_referral(referral_id):
     """Escalate referral to Khan Hospital Kisumu (id=6)"""
     try:
+        current_app.logger.debug(f"Escalating referral_id: {referral_id}")
         referral = ReferralRequest.query.get_or_404(referral_id)
         
         # Allow either the requesting hospital or the target hospital to escalate
         if (referral.requesting_hospital_id != current_user.hospital_id and 
             referral.target_hospital_id != current_user.hospital_id):
-            return jsonify({
-                'success': False,
-                'message': 'Unauthorized access'
-            }), 403
+            current_app.logger.error("Unauthorized access to escalate referral")
+            return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
         
         if referral.status != 'Pending':
-            return jsonify({
-                'success': False,
-                'message': 'Referral is no longer pending'
-            }), 400
+            current_app.logger.error("Referral is no longer pending")
+            return jsonify({'success': False, 'message': 'Referral is no longer pending'}), 400
         
-        # Escalate to Khan Hospital Kisumu (id=6)
-        khan_hospital_id = 6
+        # Escalate to Khan Hospital Kisumu (id=6) or test hospital3 if in test config
+        khan_hospital_id = current_app.config.get('HOSPITAL3_ID', 6)
         khan_hospital = Hospital.query.get(khan_hospital_id)
         if not khan_hospital:
+            current_app.logger.error(f"Escalation hospital (id={khan_hospital_id}) not found for escalation")
             return jsonify({
                 'success': False,
-                'message': 'Khan Hospital Kisumu (id=6) not found'
+                'message': f'Escalation hospital (id={khan_hospital_id}) not found'
             }), 404
         
         # Create new referral to Khan Hospital Kisumu
@@ -466,6 +486,7 @@ def escalate_referral(referral_id):
         
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Error escalating referral: {e}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -517,6 +538,7 @@ def all_referrals():
         }), 200
         
     except Exception as e:
+        current_app.logger.error(f"Error getting all referrals: {e}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -538,6 +560,7 @@ def check_referral_status(referral_id):
         }), 200
         
     except Exception as e:
+        current_app.logger.error(f"Error checking referral status: {e}")
         return jsonify({
             'success': False,
             'message': str(e)

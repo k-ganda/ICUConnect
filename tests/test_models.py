@@ -189,10 +189,10 @@ class TestBed:
             db.session.add(bed1)
             db.session.commit()
             
-            # Try to create another bed with same number (should fail)
+            # Try to create another bed with same number
             bed2 = Bed(
                 hospital_id=hospital.id,
-                bed_number=950 + TEST_RUN_ID,  # Same number
+                bed_number=950 + TEST_RUN_ID,
                 is_occupied=True
             )
             db.session.add(bed2)

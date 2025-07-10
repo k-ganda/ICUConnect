@@ -1,20 +1,45 @@
 # ICUConnect
 
-## 📌 Description
+---
 
-**ICUConnect** is a Flask-based web dashboard designed to coordinate ICU bed availability across public hospitals in Kenya. It integrates machine learning to predict ICU occupancy and facilitates hospital-to-hospital referrals, enhancing real-time visibility into ICU resources.
+## 1. Project Overview
+
+ICUConnect is a Flask-based web dashboard for coordinating ICU bed availability across public hospitals in Kenya. It integrates machine learning to predict ICU occupancy and facilitates hospital-to-hospital referrals, enhancing real-time visibility into ICU resources.
 
 ---
 
-## 🔗 GitHub Repository
+## 2. Table of Contents
 
-[https://github.com/k-ganda/ICUConnect](https://github.com/k-ganda/ICUConnect)
+1. [Project Overview](#1-project-overview)
+2. [Demo Video](#3-demo-video)
+3. [Deployed Version](#4-deployed-version)
+4. [Directory Structure](#5-directory-structure)
+5. [Installation & Running the App](#6-installation--running-the-app)
+6. [Core Features](#7-core-features)
+7. [Screenshots](#8-screenshots)
+8. [Testing](#9-testing)
+9. [Related Files](#10-related-files)
+10. [Tools & Technologies](#11-tools--technologies)
+11. [Author](#12-author)
+12. [Deployment Plan](#13-deployment-plan)
 
 ---
 
-## ⚙️ Project Setup
+## 3. Demo Video
 
-### Directory Structure
+- [5-minute demo video (YouTube)](https://www.youtube.com/watch?v=5yo5O3M0HZU)
+
+---
+
+## 4. Deployed Version
+
+- **Live App:**
+
+https://icuconnect.onrender.com
+
+---
+
+## 5. Directory Structure
 
 ```
 ICUConnect/
@@ -32,141 +57,125 @@ ICUConnect/
 │   │   ├── transfer_routes.py  # Patient transfer routes
 │   │   └── prediction_routes.py # ML prediction routes
 │   ├── templates/              # HTML templates
-│   │   ├── auth/              # Authentication templates
-│   │   ├── admin/             # Admin dashboard templates
-│   │   └── users/             # User dashboard templates
-│   ├── static/                # Static assets (CSS, JS, images)
-│   └── Dataset/               # Training data for ML model
-├── models/                    # Trained ML models
-├── migrations/                # Database migrations
-├── tests/                     # Test suite
-├── deployment/                # Deployment configuration
-└── run.py                     # Application entry point
+│   ├── static/                 # Static assets (CSS, JS, images)
+│   └── Dataset/                # Training data for ML model
+├── models/                     # Trained ML models
+├── migrations/                 # Database migrations
+├── tests/                      # Test suite (see [Testing](#9-testing))
+├── deployment/                 # Deployment configuration
+├── run.py                      # Application entry point
+└── README.md                   # Project documentation
 ```
 
-## Steps to Run The App
+---
 
-1. **📁 Clone the Repository**
+## 6. Installation & Running the App
 
-```
+### Step 1: Clone the Repository
+
+```bash
 git clone https://github.com/k-ganda/ICUConnect.git
 cd ICUConnect
 ```
 
-2. **Create a Virtual Environment**
+### Step 2: Create a Virtual Environment
 
-```
+```bash
 python -m venv venv
-source venv/bin/activate # On Windows: venv\Scripts\activate
+# On Linux/Mac:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
 ```
 
-3. **Install the Dependencies**
+### Step 3: Install Dependencies
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
-4. **Run the Flask App**
+### Step 4: Run the Flask App
 
-```
+```bash
 python run.py
 ```
 
-Open your browser and go to : http://127.0.0.1:5000/ .
+- Open your browser and go to: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
 
-**NOTE:**
+> **Note:**  
+> You can sign up, but login is restricted to verified users only due to ethical considerations around sensitive hospital data.
 
-You will be able to sign up, but login is restricted to verified users only due to ethical considerations around sensitive hospital data.
+---
 
-### Model Notebook
+## 7. Core Features
 
-The machine learning model notebook can be found in
+- **ICU Dashboard:** Real-time view of ICU bed availability across hospitals.
+- **Referrals:** Initiate and manage patient referrals between hospitals.
+- **Transfers:** Track and manage patient transfers.
+- **Admissions & Discharges:** Admit and discharge patients, with full audit trail.
+- **Predictions:** Machine learning-based ICU occupancy forecasting.
+- **Role-based Access:** Admin, and hospital personnel dashboards.
+- **Notifications:** Real-time updates and escalation for urgent cases.
+- **Real-Time Updates:** Bed changes, admissions, discharges, referrals are instant
 
-```
-notebook/Predict_Occupancy_fixed.ipynb
-```
+---
 
-It includes:
+## 8. Screenshots
 
-- Exploratory Data Analysis (EDA)
+- **Dashboard:**  
+  ![Dashboard](screenshots/dash.png)
+  ![Dashboard 2](screenshots/dash2.png)
 
-- Feature Engineering
+- **Admissions:**  
+  ![Admission 1](screenshots/adm1.png)
+  ![Admission 2](screenshots/adm2.png)
 
-- A baseline ARIMA model to forecast ICU occupancy
+- **Discharge:**  
+  ![Discharge](screenshots/dis.png)
 
-- Evaluation metrics including RMSE, MSE, MAE, and R² score
+- _(More screenshots in the `screenshots/` directory)_
 
-The dataset used is publicly available from the Ontario Open Data portal:
+---
 
-```
-https://data.ontario.ca/dataset/availability-of-adult-icu-beds-and-occupancy-for-covid-related-critical-illness-crci/resource/c7f2590f-362a-498f-a06c-da127ec41a33
-```
+## 9. Testing
 
-## Web Dashbaord Screenshots
+- **Test Suite:**  
+  Comprehensive unit, integration, and functional tests are provided.
 
-### Login Page
+- **How to Run Tests:**  
+  See the [tests/README.md](tests/README.md) for detailed instructions, test descriptions, and analysis.
 
-![Alt text](screenshots/image.png)
+---
 
-### Sign UP
+## 10. Related Files
 
-![Alt text](screenshots/part1sign.png)
-![Alt text](screenshots/part2sign.png)
+- **Machine Learning Model Notebook:**  
+  `notebook/Predict_Occupancy_fixed.ipynb`  
+  Includes EDA, feature engineering, ARIMA modeling, and evaluation metrics.
 
-### Dashboard
+- **Dataset:**  
+  Publicly available from the [Ontario Open Data portal](https://data.ontario.ca/dataset/availability-of-adult-icu-beds-and-occupancy-for-covid-related-critical-illness-crci/resource/c7f2590f-362a-498f-a06c-da127ec41a33).
 
-![Alt text](screenshots/dash.png)
-![Alt text](screenshots/dash2.png)
+- **Deployment Configuration:**  
+  See `deployment/` for Render and production setup.
 
-### Admission
+---
 
-![Alt text](screenshots/adm1.png)
-![Alt text](screenshots/adm2.png)
+## 11. Tools & Technologies
 
-### Discharge
+- **Backend:** Flask, Flask-SocketIO, SQLAlchemy, Flask-Login, Flask-Mail
+- **Frontend:** Bootstrap, HTML, CSS, JavaScript
+- **ML/Analysis:** Pandas, Scikit-learn, Statsmodels, Jupyter Notebook
+- **Database:** SQLite (local), PostgreSQL (cloud)
+- **Testing:** Pytest, Selenium (for functional tests)
+- **Other:** Gunicorn, Eventlet, Render (for deployment)
 
-![Alt text](screenshots/dis.png)
+---
 
-## Deployment Plan
+## 12. Author
 
-### Phase 1- MVP(local Deployment)
-
-- Run the Flask app locally
-
-- Use SQLite as local database
-
-- Manual updates of ICU bed records.
-
-### Phase 2 - Cloud Deployment(Planned)
-
-- Host on Render or similar cloud platform
-
-- Use PostgreSQl for database management
-
-- Deploy and integrate trained ML model
-
-- Secure access and user role management
-
-## Demo Video
-
-https://www.youtube.com/watch?v=5yo5O3M0HZU
-
-## Tools & Technologies
-
-Flask – Backend web framework
-
-Pandas, Matplotlib, Scikit-learn – data analysis & modeling
-
-SQLite / SQLAlchemy – lightweight database(currently)
-
-Bootstrap / HTML / CSS – frontend UI
-
-Jupyter Notebook – ML Model Development
-
-## Author
-
-Kathrine Ganda
-
-k.ganda@alustudent.com
-
+Kathrine Ganda  
+k.ganda@alustudent.com  
 Final Year Capstone Project - African Leadership University
+
+---

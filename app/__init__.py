@@ -57,8 +57,8 @@ def create_app():
         MAIL_SERVER='smtp.gmail.com',
         MAIL_PORT=587,
         MAIL_USE_TLS=True,
-        MAIL_USERNAME='k.ganda@alustudent.com',
-        MAIL_PASSWORD='zsdxdvytquvgepjk',
+        MAIL_USERNAME='k.ganda@alustudent.com',    
+        MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
         MAIL_DEFAULT_SENDER='k.ganda@alustudent.com',
     )
     

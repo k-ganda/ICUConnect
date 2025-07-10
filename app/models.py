@@ -83,8 +83,9 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     name = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(512))
-    is_verified = db.Column(db.Boolean, default=False)
+    is_verified = db.Column(db.Boolean, nullable=False, default=False)
     verification_token = db.Column(db.String(128), nullable=True)
+    
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
