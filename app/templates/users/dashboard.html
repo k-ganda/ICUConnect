@@ -51,22 +51,22 @@
 	</div>
 
 	<!-- Map and Referral Section -->
-	<div class="row">
+	<div class="row align-items-stretch">
 		<!-- Map Section -->
 		<div class="col-md-8">
-			<div class="card">
+			<div class="card h-100">
 				<div class="card-header">
 					<h5 class="card-title mb-0">Kisumu County ICU Bed Availability</h5>
 				</div>
-				<div class="card-body p-0">
-					<div id="map"></div>
+				<div class="card-body p-0" style="height: 100%">
+					<div id="map" style="min-height: 600px; height: 100%"></div>
 				</div>
 			</div>
 		</div>
 
 		<!-- Referral Form Section -->
 		<div class="col-md-4">
-			<div class="card" id="referralFormCard" style="display: none">
+			<div class="card h-100" id="referralFormCard" style="display: none">
 				<div class="card-header">
 					<h5 class="card-title mb-0">ICU Referral Request</h5>
 					<small class="text-muted">For new patients who need transfer</small>
@@ -75,7 +75,7 @@
 						class="btn-close float-end"
 						onclick="closeReferralForm()"></button>
 				</div>
-				<div class="card-body">
+				<div class="card-body" style="max-height: 80vh; overflow-y: auto">
 					<form id="referralForm">
 						<!-- Patient Information -->
 						<div class="row mb-3">
@@ -207,7 +207,7 @@
 			</div>
 
 			<!-- Patient Transfers -->
-			<div class="card">
+			<div class="card" id="patientTransfersCard">
 				<div class="card-header">
 					<h6 class="card-title mb-0">Patient Transfers</h6>
 				</div>
@@ -299,6 +299,10 @@
 	        const color = getAvailabilityColor(hospital.available, hospital.beds);
 	        const icon = createHospitalIcon(color, hospital.available);
 
+	        // Disable referral button if hospital has 0 beds
+	        const disabled = (hospital.beds <= 0) ? 'disabled' : '';
+	        const btnText = (hospital.beds <= 0) ? 'No Beds Available' : 'Select for Referral';
+
 	        const marker = L.marker([hospital.lat, hospital.lng], { icon }).addTo(map)
 	            .bindPopup(`
 	                <div class="hospital-popup">
@@ -308,8 +312,9 @@
 	                    <p>Available: <strong>${hospital.available}</strong></p>
 	                    <button class="btn btn-sm btn-primary mt-2 w-100 select-hospital-btn"
 	                            data-hospital-id="${hospital.id}"
-	                            data-hospital-name="${hospital.name}">
-	                        Select for Referral
+	                            data-hospital-name="${hospital.name}"
+	                            ${disabled}>
+	                        ${btnText}
 	                    </button>
 	                </div>
 	            `);
@@ -322,7 +327,7 @@
 	                document.getElementById('targetHospitalId').value = hospitalId;
 	                document.getElementById('selectedHospitalName').textContent = hospitalName;
 	                document.getElementById('selectedHospitalDisplay').style.display = 'block';
-	                document.getElementById('referralFormCard').style.display = 'block';
+	                showReferralForm();
 
 	                // Scroll to form
 	                document.getElementById('referralFormCard').scrollIntoView({
@@ -466,10 +471,13 @@
 	        });
 	}
 
+	function showReferralForm() {
+	    document.getElementById('referralFormCard').style.display = 'block';
+	    document.getElementById('patientTransfersCard').style.display = 'none';
+	}
 	function closeReferralForm() {
-	    document.getElementById('referralForm').reset();
 	    document.getElementById('referralFormCard').style.display = 'none';
-	    document.getElementById('selectedHospitalDisplay').style.display = 'none';
+	    document.getElementById('patientTransfersCard').style.display = 'block';
 	}
 
 	function clearSelectedHospital() {
@@ -625,7 +633,7 @@
 	                    document.getElementById('targetHospitalId').value = hospitalId;
 	                    document.getElementById('selectedHospitalName').textContent = hospitalName;
 	                    document.getElementById('selectedHospitalDisplay').style.display = 'block';
-	                    document.getElementById('referralFormCard').style.display = 'block';
+	                    showReferralForm();
 	                    document.getElementById('referralFormCard').scrollIntoView({
 	                        behavior: 'smooth',
 	                        block: 'start'
