@@ -655,51 +655,56 @@ socket.on('referral_response', function (response) {
 		response.requesting_hospital_id
 	);
 	if (window.addNotification) {
-		// Handle different response types
-		if (response.response_type === 'accepted_by_us') {
-			// This is for the accepting hospital
-			if (window.currentHospitalId == response.responding_hospital_id) {
-				const title = 'Referral Accepted';
-				const message = 'You have accepted this referral request';
+		// This is for the sending hospital
+		if (
+			window.currentHospitalId &&
+			window.currentHospitalId == response.requesting_hospital_id
+		) {
+			const title =
+				response.response_type === 'accept'
+					? 'Referral Accepted'
+					: 'Referral Rejected';
+			const message =
+				response.response_type === 'accept'
+					? `Your referral to ${response.target_hospital} was accepted`
+					: `Your referral to ${response.target_hospital} was rejected. Reason: ${response.response_message}`;
 
-				console.log('Adding notification for accepting hospital:', {
-					title,
-					message,
-				});
-				window.addNotification('referral', title, message, {
-					referral_id: response.referral_id,
-					response_type: response.response_type,
-					target_hospital: response.target_hospital,
-				});
-			}
-		} else {
-			// This is for the sending hospital
-			if (
-				window.currentHospitalId &&
-				window.currentHospitalId == response.requesting_hospital_id
-			) {
-				const title =
-					response.response_type === 'accept'
-						? 'Referral Accepted'
-						: 'Referral Rejected';
-				const message =
-					response.response_type === 'accept'
-						? `Your referral to ${response.target_hospital} was accepted`
-						: `Your referral to ${response.target_hospital} was rejected. Reason: ${response.response_message}`;
-
-				console.log('Adding notification for referral response:', {
-					title,
-					message,
-				});
-				window.addNotification('referral', title, message, {
-					referral_id: response.referral_id,
-					response_type: response.response_type,
-					target_hospital: response.target_hospital,
-				});
-			}
+			console.log('Adding notification for referral response:', {
+				title,
+				message,
+			});
+			window.addNotification('referral', title, message, {
+				referral_id: response.referral_id,
+				response_type: response.response_type,
+				target_hospital: response.target_hospital,
+			});
 		}
 	} else {
 		console.warn('addNotification function not available');
+	}
+});
+
+// Listen for referral accepted by us (for the accepting hospital)
+socket.on('referral_accepted_by_us', function (data) {
+	console.log('Referral accepted by us received:', data);
+	if (window.addNotification) {
+		// This is for the accepting hospital
+		if (window.currentHospitalId == data.hospital_id) {
+			const title = 'Referral Accepted';
+			const message = 'You have accepted this referral request';
+
+			console.log('Adding notification for accepting hospital:', {
+				title,
+				message,
+			});
+			window.addNotification('referral', title, message, {
+				referral_id: data.referral_id,
+				response_type: 'accepted_by_us',
+				target_hospital: data.hospital_name,
+			});
+		}
+	} else {
+		console.warn('addNotification function not available for accepted_by_us');
 	}
 });
 
