@@ -455,6 +455,9 @@
 	                    );
 	                }
 
+	                // Reset the form and hide selected hospital display
+	                document.getElementById('referralForm').reset();
+	                document.getElementById('selectedHospitalDisplay').style.display = 'none';
 	                showToast(data.message, 'success');
 	                closeReferralForm();
 	            } else {

@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
 								window.addNotification(
 									'system',
 									'Patient Admitted',
-									`New patient ${formData.patient_name} has been admitted to ICU`,
+									'A new patient has been admitted to ICU',
 									{
 										patient_name: formData.patient_name,
 										bed_number: formData.bed_number,
