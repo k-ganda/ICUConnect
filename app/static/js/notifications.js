@@ -628,20 +628,8 @@ socket.on('transfer_status_update', function (transfer) {
 
 	// Also update dashboard if function is available
 	if (typeof window.loadActiveTransfers === 'function') {
-		if (transfer.status === 'Admitted') {
-			// Immediately refresh the transfers list to remove the admitted transfer
-			window.loadActiveTransfers();
-
-			// Also refresh the page after a short delay to ensure all updates are visible
-			setTimeout(() => {
-				window.location.reload();
-			}, 1000);
-		} else {
-			window.loadActiveTransfers();
-		}
-	} else if (transfer.status === 'Admitted') {
-		// Fallback: force reload if admitted and function not available
-		setTimeout(() => window.location.reload(), 1000);
+		// Refresh the transfers list to show updated status
+		window.loadActiveTransfers();
 	}
 });
 
