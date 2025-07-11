@@ -326,6 +326,18 @@ def respond_to_referral():
         }
         socketio.emit('referral_response', response_data)
         
+        # Also emit notification for the accepting hospital (when accepting)
+        if response_type == 'accept':
+            accepting_hospital_notification = {
+                'referral_id': referral_id,
+                'response_type': 'accepted_by_us',
+                'response_message': 'You have accepted this referral',
+                'target_hospital': responding_hospital.name,
+                'responding_hospital_id': responding_hospital.id,
+                'requesting_hospital_id': referral.requesting_hospital_id
+            }
+            socketio.emit('referral_response', accepting_hospital_notification)
+        
         return jsonify({
             'success': True,
             'message': f'Referral {response_type}ed successfully'

@@ -531,15 +531,20 @@ socket.on('new_referral', function (referral) {
 
 		// Add notification to notification center
 		if (window.addNotification) {
-			window.addNotification(
-				'referral',
-				'New ICU Referral Request',
-				`New referral request received from ${referral.requesting_hospital}`,
-				{
-					referral_id: referral.id,
-					requesting_hospital: referral.requesting_hospital,
-				}
-			);
+			// Check if this is an escalation hospital (id=11) and show different message
+			let title, message;
+			if (window.currentHospitalId == 11) {
+				title = 'Referral Escalation Received';
+				message = 'You have received a referral escalation';
+			} else {
+				title = 'New ICU Referral Request';
+				message = `New referral request received from ${referral.requesting_hospital}`;
+			}
+
+			window.addNotification('referral', title, message, {
+				referral_id: referral.id,
+				requesting_hospital: referral.requesting_hospital,
+			});
 		}
 	}
 });
@@ -565,7 +570,12 @@ socket.on('transfer_status_update', function (transfer) {
 			switch (transfer.status) {
 				case 'En Route':
 					title = 'Patient Transfer Started';
-					message = `Patient transfer from ${transfer.from_hospital} is now en route`;
+					// Different message for sending vs receiving hospital
+					if (window.currentHospitalId == transfer.from_hospital_id) {
+						message = 'Your patient transfer is now en route';
+					} else {
+						message = `Patient transfer from ${transfer.from_hospital} is now en route`;
+					}
 					break;
 				case 'Arrived':
 					title = 'Patient Transfer Arrived';
@@ -575,6 +585,10 @@ socket.on('transfer_status_update', function (transfer) {
 					if (window.currentHospitalId == transfer.from_hospital_id) {
 						title = 'Patient Admitted';
 						message = `Your patient referral at ${transfer.to_hospital} has been admitted.`;
+
+						// Add popup notification for sending hospital
+						showAlert(message, 'success');
+
 						window.addNotification('transfer', title, message, {
 							transfer_id: transfer.id,
 							status: transfer.status,
@@ -641,29 +655,48 @@ socket.on('referral_response', function (response) {
 		response.requesting_hospital_id
 	);
 	if (window.addNotification) {
-		// Only show to the sending hospital
-		if (
-			window.currentHospitalId &&
-			window.currentHospitalId == response.requesting_hospital_id
-		) {
-			const title =
-				response.response_type === 'accept'
-					? 'Referral Accepted'
-					: 'Referral Rejected';
-			const message =
-				response.response_type === 'accept'
-					? `Your referral to ${response.target_hospital} was accepted`
-					: `Your referral to ${response.target_hospital} was rejected. Reason: ${response.response_message}`;
+		// Handle different response types
+		if (response.response_type === 'accepted_by_us') {
+			// This is for the accepting hospital
+			if (window.currentHospitalId == response.responding_hospital_id) {
+				const title = 'Referral Accepted';
+				const message = 'You have accepted this referral request';
 
-			console.log('Adding notification for referral response:', {
-				title,
-				message,
-			});
-			window.addNotification('referral', title, message, {
-				referral_id: response.referral_id,
-				response_type: response.response_type,
-				target_hospital: response.target_hospital,
-			});
+				console.log('Adding notification for accepting hospital:', {
+					title,
+					message,
+				});
+				window.addNotification('referral', title, message, {
+					referral_id: response.referral_id,
+					response_type: response.response_type,
+					target_hospital: response.target_hospital,
+				});
+			}
+		} else {
+			// This is for the sending hospital
+			if (
+				window.currentHospitalId &&
+				window.currentHospitalId == response.requesting_hospital_id
+			) {
+				const title =
+					response.response_type === 'accept'
+						? 'Referral Accepted'
+						: 'Referral Rejected';
+				const message =
+					response.response_type === 'accept'
+						? `Your referral to ${response.target_hospital} was accepted`
+						: `Your referral to ${response.target_hospital} was rejected. Reason: ${response.response_message}`;
+
+				console.log('Adding notification for referral response:', {
+					title,
+					message,
+				});
+				window.addNotification('referral', title, message, {
+					referral_id: response.referral_id,
+					response_type: response.response_type,
+					target_hospital: response.target_hospital,
+				});
+			}
 		}
 	} else {
 		console.warn('addNotification function not available');
