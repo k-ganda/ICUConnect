@@ -589,6 +589,9 @@ socket.on('transfer_status_update', function (transfer) {
 						// Add popup notification for sending hospital
 						showAlert(message, 'success');
 
+						// Immediately update the transfer badge in the DOM
+						updateTransferBadge(transfer.id, 'Admitted');
+
 						window.addNotification('transfer', title, message, {
 							transfer_id: transfer.id,
 							status: transfer.status,
@@ -632,6 +635,38 @@ socket.on('transfer_status_update', function (transfer) {
 		window.loadActiveTransfers();
 	}
 });
+
+// Function to immediately update transfer badge in the DOM
+function updateTransferBadge(transferId, newStatus) {
+	// Find the transfer item in the DOM
+	const transferItems = document.querySelectorAll('.list-group-item');
+	transferItems.forEach((item) => {
+		// Look for the transfer ID in the action button href or other identifying element
+		const actionButton = item.querySelector(
+			`a[href*="transfer_id=${transferId}"]`
+		);
+		if (actionButton) {
+			// Find the badge in this transfer item
+			const badge = item.querySelector('.badge');
+			if (badge) {
+				if (newStatus === 'Admitted') {
+					badge.className = 'badge bg-success';
+					badge.textContent = 'Admitted';
+					// Remove the action button since it's now admitted
+					actionButton.remove();
+					// Add admission time if available
+					const timeElement = item.querySelector('small.text-muted:last-child');
+					if (timeElement) {
+						const admissionTime = document.createElement('br');
+						admissionTime.innerHTML =
+							'<small class="text-success"><strong>Admitted:</strong> Just now</small>';
+						timeElement.appendChild(admissionTime);
+					}
+				}
+			}
+		}
+	});
+}
 
 // Listen for referral responses (for the sending hospital)
 socket.on('referral_response', function (response) {
