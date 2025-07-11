@@ -673,6 +673,20 @@ socket.on('referral_response', function (response) {
 				title,
 				message,
 			});
+
+			// Add popup notification for sending hospital
+			if (response.response_type === 'accept') {
+				showAlert(
+					`Your referral to ${response.target_hospital} was accepted!`,
+					'success'
+				);
+			} else {
+				showAlert(
+					`Your referral to ${response.target_hospital} was rejected. Reason: ${response.response_message}`,
+					'error'
+				);
+			}
+
 			window.addNotification('referral', title, message, {
 				referral_id: response.referral_id,
 				response_type: response.response_type,
