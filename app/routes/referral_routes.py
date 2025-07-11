@@ -403,7 +403,7 @@ def pending_referrals():
 @referral_bp.route('/api/escalate-referral/<int:referral_id>', methods=['POST'])
 @login_required
 def escalate_referral(referral_id):
-    """Escalate referral to Khan Hospital Kisumu (id=6)"""
+    """Escalate referral to Hospital(id=11) or test hospital in test mode"""
     try:
         current_app.logger.debug(f"Escalating referral_id: {referral_id}")
         referral = ReferralRequest.query.get_or_404(referral_id)
@@ -418,20 +418,22 @@ def escalate_referral(referral_id):
             current_app.logger.error("Referral is no longer pending")
             return jsonify({'success': False, 'message': 'Referral is no longer pending'}), 400
         
-        # Escalate to Khan Hospital Kisumu (id=6) or test hospital3 if in test config
-        khan_hospital_id = current_app.config.get('HOSPITAL3_ID', 6)
-        khan_hospital = Hospital.query.get(khan_hospital_id)
-        if not khan_hospital:
-            current_app.logger.error(f"Escalation hospital (id={khan_hospital_id}) not found for escalation")
+        # Use test escalation hospital in test mode, otherwise use production id=11
+        if current_app.config.get('TESTING') and current_app.config.get('HOSPITAL3_ID'):
+            escalation_hospital_id = current_app.config['HOSPITAL3_ID']
+        else:
+            escalation_hospital_id = 11
+        escalation_hospital = Hospital.query.get(escalation_hospital_id)
+        if not escalation_hospital:
+            current_app.logger.error(f"Escalation hospital (id={escalation_hospital_id}) not found for escalation")
             return jsonify({
                 'success': False,
-                'message': f'Escalation hospital (id={khan_hospital_id}) not found'
+                'message': f'Escalation hospital (id={escalation_hospital_id}) not found'
             }), 404
-        
-        # Create new referral to Khan Hospital Kisumu
+        # Create new referral to escalation hospital
         new_referral = ReferralRequest(
             requesting_hospital_id=referral.requesting_hospital_id,
-            target_hospital_id=khan_hospital_id,
+            target_hospital_id=escalation_hospital_id,
             patient_id=None,
             patient_age=referral.patient_age,
             patient_gender=referral.patient_gender,
@@ -454,7 +456,7 @@ def escalate_referral(referral_id):
         hospital = Hospital.query.get(current_user.hospital_id)
         notification_duration = hospital.notification_duration
         
-        # Send WebSocket notification to Khan Hospital Kisumu about the new referral
+        # Send WebSocket notification to escalation hospital about the new referral
         new_referral_data = {
             'id': new_referral.id,
             'target_hospital_id': new_referral.target_hospital_id,
@@ -473,16 +475,16 @@ def escalate_referral(referral_id):
         # Send WebSocket notification to the original hospital about the escalation
         escalation_notification = {
             'referral_id': referral.id,
-            'escalated_to': khan_hospital.name,
-            'message': f'Referral #{referral.id} has been escalated to {khan_hospital.name} due to timeout'
+            'escalated_to': escalation_hospital.name,
+            'message': f'Referral #{referral.id} has been escalated to {escalation_hospital.name} due to timeout'
         }
         socketio.emit('referral_escalated', escalation_notification)
         
         return jsonify({
             'success': True,
             'new_referral_id': new_referral.id,
-            'target_hospital': khan_hospital.name,
-            'message': f'Escalated to {khan_hospital.name}'
+            'target_hospital': escalation_hospital.name,
+            'message': f'Escalated to {escalation_hospital.name}'
         }), 200
         
     except Exception as e:
