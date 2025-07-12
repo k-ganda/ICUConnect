@@ -131,6 +131,8 @@ def initiate_referral():
                 'message': 'Target hospital has no available beds'
             }), 400
         
+        # Accept both 'urgency_level' and 'priority' from frontend
+        urgency_level = data.get('urgency_level') or data.get('priority') or 'Medium'
         # Create referral request for new patient
         referral = ReferralRequest(
             requesting_hospital_id=requesting_hospital.id,
@@ -142,7 +144,7 @@ def initiate_referral():
             current_treatment=data.get('current_treatment'),
             # Use primary_diagnosis if reason_for_referral is missing or empty
             reason_for_referral=(data.get('reason_for_referral') or data.get('primary_diagnosis')),
-            urgency_level=data.get('urgency_level'),
+            urgency_level=urgency_level,
             special_requirements=data.get('special_requirements', ''),
             status='Pending'
         )
