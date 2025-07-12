@@ -27,7 +27,7 @@ ICUConnect is a Flask-based web dashboard for coordinating ICU bed availability 
 
 ## 3. Demo Video
 
-- [5-minute demo video (YouTube)]([https://www.youtube.com/watch?v=5yo5O3M0HZU](https://youtu.be/MuZ4L4AzKDA))
+- https://youtu.be/MuZ4L4AzKDA
 
 ---
 
