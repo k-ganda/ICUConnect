@@ -64,12 +64,17 @@ def approve_user(user_id):
 def beds():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
-        beds = Bed.query.join(Hospital).order_by(Hospital.name, Bed.bed_number).paginate(page=page, per_page=10)
+        beds = Bed.query.join(Hospital).order_by(Bed.id.desc()).paginate(page=page, per_page=10)
         hospitals = Hospital.query.order_by(Hospital.name).all()
     else:
-        beds = Bed.query.filter_by(hospital_id=current_user.hospital_id).order_by(Bed.bed_number).paginate(page=page, per_page=10)
+        beds = Bed.query.filter_by(hospital_id=current_user.hospital_id).order_by(Bed.id.desc()).paginate(page=page, per_page=10)
         hospitals = None
     return render_template('admin/beds.html', beds=beds, hospitals=hospitals)
+
+def get_next_bed_number(hospital_id):
+    """Get the next available bed number for a hospital"""
+    max_bed = db.session.query(db.func.max(Bed.bed_number)).filter_by(hospital_id=hospital_id).scalar()
+    return (max_bed or 0) + 1
 
 @admin_bp.route('/beds/add', methods=['POST'])
 @login_required
@@ -80,24 +85,32 @@ def add_bed():
         hospital_id = request.form.get('hospital_id')
     else:
         hospital_id = current_user.hospital_id
+    
     bed_number = request.form.get('bed_number')
     bed_type = request.form.get('bed_type', 'ICU')
-    if not bed_number or not hospital_id:
-        error = 'Bed number and hospital are required.'
+    
+    if not hospital_id:
+        error = 'Hospital is required.'
+    elif not bed_number:
+        # Auto-assign bed number if not provided
+        bed_number = get_next_bed_number(int(hospital_id))
     else:
+        # Check if manually entered bed number already exists
         existing_bed = Bed.query.filter_by(hospital_id=hospital_id, bed_number=bed_number).first()
         if existing_bed:
             error = f'Bed number {bed_number} already exists for this hospital.'
+    
     if error:
         # Re-render the beds page with the error
         page = 1
         if current_user.privilege_level == 'super':
-            beds = Bed.query.join(Hospital).order_by(Hospital.name, Bed.bed_number).paginate(page=page, per_page=10)
+            beds = Bed.query.join(Hospital).order_by(Bed.created_at.desc()).paginate(page=page, per_page=10)
             hospitals = Hospital.query.order_by(Hospital.name).all()
         else:
-            beds = Bed.query.filter_by(hospital_id=current_user.hospital_id).order_by(Bed.bed_number).paginate(page=page, per_page=10)
+            beds = Bed.query.filter_by(hospital_id=current_user.hospital_id).order_by(Bed.created_at.desc()).paginate(page=page, per_page=10)
             hospitals = None
         return render_template('admin/beds.html', beds=beds, hospitals=hospitals, bed_error=error)
+    
     try:
         bed = Bed(hospital_id=hospital_id, bed_number=bed_number, bed_type=bed_type)
         db.session.add(bed)
@@ -113,9 +126,17 @@ def add_bed():
 @admin_required
 def remove_bed(bed_id):
     bed = Bed.query.get_or_404(bed_id)
-    if bed.hospital_id != current_user.hospital_id:
+    
+    # Super admins can remove any bed, hospital admins can only remove from their hospital
+    if current_user.privilege_level != 'super' and bed.hospital_id != current_user.hospital_id:
         flash('You can only remove beds from your own hospital.', 'danger')
         return redirect(url_for('admin.beds'))
+    
+    # Check if bed is occupied
+    if bed.is_occupied:
+        flash(f'Cannot remove bed {bed.bed_number} - it is currently occupied.', 'warning')
+        return redirect(url_for('admin.beds'))
+    
     try:
         db.session.delete(bed)
         db.session.commit()
@@ -183,10 +204,24 @@ def add_admin():
 @admin_required
 def remove_admin(admin_id):
     admin = Admin.query.get_or_404(admin_id)
-    if admin.hospital_id != current_user.hospital_id:
+    
+    # Super admins can remove any admin, hospital admins can only remove from their hospital
+    if current_user.privilege_level != 'super' and admin.hospital_id != current_user.hospital_id:
         flash('You can only remove admins from your own hospital.', 'danger')
         return redirect(url_for('admin.admins'))
+    
+    # Prevent removing yourself
+    if admin.id == current_user.id:
+        flash('You cannot remove yourself.', 'danger')
+        return redirect(url_for('admin.admins'))
+    
     try:
+        # Check if admin has any approved users (optional: prevent removal if they do)
+        approved_users = User.query.filter_by(admin_id=admin.id).count()
+        if approved_users > 0:
+            flash(f'Cannot remove admin {admin.email} - they have {approved_users} approved users. Please reassign users first.', 'warning')
+            return redirect(url_for('admin.admins'))
+        
         db.session.delete(admin)
         db.session.commit()
         flash(f'Admin {admin.email} removed successfully.', 'success')
