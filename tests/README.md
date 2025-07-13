@@ -87,7 +87,7 @@ During the development and refinement of these integration tests, several issues
 
 **Screenshot:**
 
-- ![Unit Test Screenshot](int_test.png)
+- ![Intergration Test Screenshot](int%20test.png)
 
 - **Result:**
   - These changes resulted in a fully passing integration test suite, with robust coverage of both normal and edge-case workflows, and reliable, repeatable test runs.
