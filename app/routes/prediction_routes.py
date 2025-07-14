@@ -1,3 +1,4 @@
+# Exclude test hospitals for rediction calculations
 from flask import Blueprint, request, jsonify
 import pickle
 import pandas as pd
@@ -76,7 +77,7 @@ def predict_occupancy():
             weighted_hospital_capacity = hospital_capacity * hospital_weight
             
             # Calculate total weighted system capacity
-            all_hospitals = Hospital.query.all()
+            all_hospitals = Hospital.query.filter_by(is_test=False).all()
             total_weighted_capacity = 0
             for hosp in all_hospitals:
                 hosp_beds = Bed.query.filter_by(hospital_id=hosp.id).count()
@@ -288,7 +289,7 @@ def icu_trend():
     weekly_occupancy = []
     hospital_capacity = Bed.query.filter_by(hospital_id=hospital_id).count()
     hospital_weight = level_weights.get(hospital.level, 1.0)
-    all_hospitals = Hospital.query.all()
+    all_hospitals = Hospital.query.filter_by(is_test=False).all()
 
     for week_end in weekly_dates:
         week_start = week_end - timedelta(days=6)
@@ -370,7 +371,7 @@ def occupancy_distribution():
     level_weights = {2: 2.5, 3: 2.0, 4: 1.8, 5: 0.6, 6: 0.2}
     hospital_capacity = Bed.query.filter_by(hospital_id=hospital_id).count()
     hospital_weight = level_weights.get(hospital.level, 1.0)
-    all_hospitals = Hospital.query.all()
+    all_hospitals = Hospital.query.filter_by(is_test=False).all()
     # Calculate weighted occupancy for each week
     percents = []
     for week_end in weekly_dates:
