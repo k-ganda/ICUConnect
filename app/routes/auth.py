@@ -200,12 +200,12 @@ def forgot_password():
         email = request.form.get('email')
         if not email:
             flash('Please enter your email address.', 'danger')
-            return render_template('auth/forgot_password.html')
+            return redirect(url_for('auth.forgot_password'))
         user = User.query.filter_by(email=email).first()
         admin = Admin.query.filter_by(email=email).first()
         if not user and not admin:
             flash('If the email exists in our system, a reset link will be sent.', 'info')
-            return render_template('auth/forgot_password.html')
+            return redirect(url_for('auth.forgot_password'))
         reset_token = secrets.token_urlsafe(32)
         reset_url = None
         if user:
@@ -224,9 +224,9 @@ def forgot_password():
             )
         except Exception as e:
             flash(f'Failed to send reset email: {e}', 'danger')
-            return render_template('auth/forgot_password.html')
+            return redirect(url_for('auth.forgot_password'))
         flash('If the email exists in our system, a reset link has been sent to your email.', 'info')
-        return render_template('auth/forgot_password.html')
+        return redirect(url_for('auth.forgot_password'))
     return render_template('auth/forgot_password.html')
 
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
