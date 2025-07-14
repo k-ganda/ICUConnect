@@ -145,7 +145,7 @@ python run.py
   ![Predictions 3](screenshots/predictions3.png)
 
 - **Settings**
-  ![Settings](screenshots/settings.png)
+  ![Settings](screenshots/settings1.png)
 
 ---
 
