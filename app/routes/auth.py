@@ -199,12 +199,12 @@ def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email')
         if not email:
-            flash('Please enter your email address.', 'danger')
+            flash('Please enter your email address.', 'forgot_password')
             return redirect(url_for('auth.forgot_password'))
         user = User.query.filter_by(email=email).first()
         admin = Admin.query.filter_by(email=email).first()
         if not user and not admin:
-            flash('If the email exists in our system, a reset link will be sent.', 'info')
+            flash('If the email exists in our system, a reset link will be sent.', 'forgot_password')
             return redirect(url_for('auth.forgot_password'))
         reset_token = secrets.token_urlsafe(32)
         reset_url = None
@@ -223,9 +223,9 @@ def forgot_password():
                 body=f"""A password reset was requested for your ICUConnect account.\n\nTo reset your password, click the link below:\n{reset_url}\n\nIf you did not request this, please ignore this email.\n\n- ICUConnect Team"""
             )
         except Exception as e:
-            flash(f'Failed to send reset email: {e}', 'danger')
+            flash(f'Failed to send reset email: {e}', 'forgot_password')
             return redirect(url_for('auth.forgot_password'))
-        flash('If the email exists in our system, a reset link has been sent to your email.', 'info')
+        flash('If the email exists in our system, a reset link has been sent to your email.', 'forgot_password')
         return redirect(url_for('auth.forgot_password'))
     return render_template('auth/forgot_password.html')
 
