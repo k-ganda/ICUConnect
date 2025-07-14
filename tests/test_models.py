@@ -203,7 +203,11 @@ class TestBed:
                 assert False, "Should have raised IntegrityError for duplicate bed number"
             except Exception as e:
                 db.session.rollback()
-                assert "UniqueViolation" in str(e) or "duplicate" in str(e).lower()
+                assert (
+                    "UniqueViolation" in str(e)
+                    or "duplicate" in str(e).lower()
+                    or "UNIQUE constraint failed" in str(e)
+                )
 
 @pytest.mark.unit
 class TestReferralRequest:

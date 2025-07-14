@@ -273,6 +273,14 @@ class ReferralRequest(db.Model):
     responded_at = db.Column(db.DateTime)
     escalated_at = db.Column(db.DateTime)
     
+    # Indexes for better query performance
+    __table_args__ = (
+        db.Index('idx_referral_status', 'status'),
+        db.Index('idx_referral_urgency', 'urgency_level'),
+        db.Index('idx_referral_created_at', 'created_at'),
+        db.Index('idx_referral_hospitals', 'requesting_hospital_id', 'target_hospital_id'),
+    )
+    
     # Relationships
     requesting_hospital = db.relationship('Hospital', foreign_keys=[requesting_hospital_id])
     target_hospital = db.relationship('Hospital', foreign_keys=[target_hospital_id])
@@ -360,6 +368,13 @@ class PatientTransfer(db.Model):
     # Notes and updates
     transfer_notes = db.Column(db.Text)
     arrival_notes = db.Column(db.Text)
+    
+    # Indexes for better query performance
+    __table_args__ = (
+        db.Index('idx_transfer_status', 'status'),
+        db.Index('idx_transfer_hospitals', 'from_hospital_id', 'to_hospital_id'),
+        db.Index('idx_transfer_created_at', 'transfer_initiated_at'),
+    )
     
     # Relationships
     referral_request = db.relationship('ReferralRequest', backref='transfers')

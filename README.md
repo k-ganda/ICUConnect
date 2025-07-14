@@ -122,18 +122,30 @@ python run.py
 
 ## 8. Screenshots
 
+- **Authentication**
+  ![Login](screenshots/Login.png)
 - **Dashboard:**  
-  ![Dashboard](screenshots/dash.png)
-  ![Dashboard 2](screenshots/dash2.png)
+  ![Dashboard](screenshots/dashboard1.png)
+  ![Dashboard 2](screenshots/dashboard2.png)
 
 - **Admissions:**  
-  ![Admission 1](screenshots/adm1.png)
-  ![Admission 2](screenshots/adm2.png)
+  ![Admission 2](screenshots/admission2.png)
 
 - **Discharge:**  
-  ![Discharge](screenshots/dis.png)
+  ![Discharge](screenshots/discharge_1.png)
+  ![Discharge 2](screenshots/discharge_2.png)
 
-- _(More screenshots in the `screenshots/` directory)_
+- **Referrals**
+  ![Referrals](screenshots/referral_popup.jpg)
+  ![Referrals 2](screenshots/referral_popup2.jpg)
+
+- **Predictions**
+  ![Predictions](screenshots/predictions1.png)
+  ![Predictions 2](screenshots/predictions2.png)
+  ![Predictions 3](screenshots/predictions3.png)
+
+- **Settings**
+  ![Settings](screenshots/settings.png)
 
 ---
 

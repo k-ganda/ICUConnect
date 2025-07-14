@@ -37,7 +37,7 @@ Finally, the Discharge model is tested by creating discharge records for patient
 
 **Screenshot:**
 
-- ![Unit Test Screenshot](unit%20test.png)
+- ![Unit Test Screenshot](images/unit%20test.png)
 
 **Analysis:**
 
@@ -87,7 +87,7 @@ During the development and refinement of these integration tests, several issues
 
 **Screenshot:**
 
-- ![Intergration Test Screenshot](int%20test.png)
+- ![Intergration Test Screenshot](images/int%20test.png)
 
 - **Result:**
   - These changes resulted in a fully passing integration test suite, with robust coverage of both normal and edge-case workflows, and reliable, repeatable test runs.
@@ -124,14 +124,77 @@ pytest tests/test_functional.py -v
 
 You can also specify a different browser or run a subset of tests using pytest options.
 
-**Screenshot:**
-
-- ![Functional Test Screenshot](functional_test.png)
-
 **Analysis:**
 
 - These tests ensure that the user interface and backend work together as expected in real-world scenarios.
 - By automating browser actions, they catch issues that unit and integration tests may miss, such as JavaScript errors, UI regressions, and workflow problems.
 - The suite provides confidence that the system is usable and robust from an end-user perspective.
+
+---
+
+### 2.4. Performance Tests (`test_performance.py`)
+
+**Description:**
+
+The performance tests in `test_performance.py` provide a comprehensive evaluation of the ICUConnect system's scalability, efficiency, and robustness under high load and concurrent usage. These tests are designed to simulate real-world stress scenarios, including bulk data operations, concurrent user activity, and error recovery, ensuring the system can handle demanding production environments.
+
+**What is Tested:**
+
+The performance test suite covers three main categories:
+
+1. **Basic Performance Tests** (`TestPerformance` class):
+
+   - **Referral Creation Performance**: Creates 100 referrals with batched commits (20 per batch) - **time limit: 30 seconds**
+   - **Concurrent Referral Creation**: Creates 50 referrals using 10 concurrent threads - **time limit: 60 seconds**
+   - **Database Query Performance**: Creates 1,000 referrals, then tests query performance - **time limit: 15 seconds for full query, 5 seconds for filtered query**
+   - **Memory Usage**: Monitors memory consumption during operations - **limit: < 100MB increase**
+   - **Notification Duration Calculation**: Tests time calculations for 100 referrals - **time limit: 10 seconds**
+   - **Transfer Status Updates**: Updates 100 transfer statuses in batches - **time limit: 120 seconds**
+   - **Escalation Logic Performance**: Tests escalation logic on 100 referrals - **time limit: 10 seconds**
+   - **Error Recovery**: Tests system recovery from errors with 100 iterations - **time limit: 30 seconds**
+
+2. **Load Testing** (`TestLoadTesting` class):
+
+   - **High Concurrent Users**: Simulates 20 concurrent users performing 10 operations each - **time limit: 30 seconds**
+   - **Database Connection Pool**: Tests 15 concurrent database operations - **time limit: 20 seconds**
+
+3. **Stress Testing** (`TestStressTesting` class):
+   - **Large Dataset Performance**: Creates 500 referrals and performs complex queries - **time limit: 60 seconds total, 10 seconds for queries**
+   - **Error Recovery**: Tests error recovery with 100 operations - **time limit: 30 seconds**
+
+**Recent Improvements:**
+
+The performance tests initially faced several challenges that were systematically resolved:
+
+- **Memory Management**: Tests were added to ensure memory usage stays under 100MB during operations, preventing memory leaks in production.
+
+- **Batch Processing**: Referral creation was optimized using batch commits (20-50 records per commit) to improve performance from individual commits.
+
+- **Thread Safety**: Each concurrent operation now uses its own SQLAlchemy session and engine, with proper cleanup in `finally` blocks to prevent resource leaks.
+
+- **Realistic Delays**: Added small delays (`time.sleep(0.01)`) in user simulation to mimic real user behavior patterns.
+
+**How to Run:**
+
+```bash
+# Run all performance tests
+pytest tests/test_performance.py -v
+```
+
+**Screenshot:**
+
+- ![Performance Test Screenshot](images/perf%20test.png)
+
+**Analysis:**
+
+The performance test results demonstrate that the ICUConnect system can handle:
+
+- **Bulk Operations**: Creating 100-500 referrals efficiently with batched commits
+- **Concurrent Access**: Supporting 10-20 concurrent users without performance degradation
+- **Large Datasets**: Querying 1,000+ records within acceptable time limits
+- **Memory Efficiency**: Maintaining stable memory usage under load
+- **Error Resilience**: Recovering gracefully from database errors and continuing operations
+
+All tests complete within their specified time limits, indicating the system is ready for production deployment with proper monitoring and scaling strategies in place.
 
 ---
