@@ -115,6 +115,13 @@ document.addEventListener('DOMContentLoaded', function () {
 		admissionFormData.addEventListener('submit', function (e) {
 			e.preventDefault();
 
+			const submitBtn = this.querySelector('button[type="submit"]');
+			if (submitBtn) {
+				submitBtn.disabled = true;
+				submitBtn.innerHTML =
+					'<span class="spinner-border spinner-border-sm"></span> Admitting...';
+			}
+
 			const formData = {
 				patient_name: this.patient_name.value,
 				bed_number: parseInt(this.bed_number.value),
@@ -144,6 +151,12 @@ document.addEventListener('DOMContentLoaded', function () {
 					const data = await response.json();
 					console.log('API Response:', data);
 
+					if (submitBtn) {
+						submitBtn.disabled = false;
+						submitBtn.innerHTML =
+							'<i class="fas fa-bed me-2"></i>Admit Patient';
+					}
+
 					if (response.ok && data.success) {
 						closeForm();
 						// If this was a transfer admission, update the transfer status
@@ -159,7 +172,6 @@ document.addEventListener('DOMContentLoaded', function () {
 									arrival_notes: '',
 								}),
 							}).then(() => {
-								// Refresh the admissions table to show the new admission
 								refreshAdmissionsTable();
 								if (window.showToast) {
 									window.showToast(
@@ -169,7 +181,6 @@ document.addEventListener('DOMContentLoaded', function () {
 								}
 							});
 						} else {
-							// Add notification for regular admission
 							if (window.addNotification) {
 								window.addNotification(
 									'system',
@@ -181,8 +192,6 @@ document.addEventListener('DOMContentLoaded', function () {
 									}
 								);
 							}
-
-							// Refresh the admissions table to show the new admission
 							refreshAdmissionsTable();
 							url.searchParams.delete('transfer_id');
 						}
@@ -191,6 +200,11 @@ document.addEventListener('DOMContentLoaded', function () {
 					}
 				})
 				.catch((error) => {
+					if (submitBtn) {
+						submitBtn.disabled = false;
+						submitBtn.innerHTML =
+							'<i class="fas fa-bed me-2"></i>Admit Patient';
+					}
 					console.error('Fetch error:', error);
 					alert('An error occurred: ' + (error.message || 'Unknown error'));
 				});
