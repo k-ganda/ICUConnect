@@ -13,6 +13,23 @@ from app import db
 
 prediction_bp = Blueprint('prediction', __name__)
 
+# --- Caching for Excel and ARIMA model ---
+excel_cache = None
+model_cache = None
+
+def get_excel_data():
+    global excel_cache
+    if excel_cache is None:
+        dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'app', 'Dataset', 'Dataset1.xlsx')
+        excel_cache = pd.read_excel(dataset_path)
+    return excel_cache
+
+def get_arima_model():
+    global model_cache
+    if model_cache is None:
+        model_cache = load_arima_model()
+    return model_cache
+
 def load_arima_model():
     """Load the trained ARIMA model"""
     model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models', 'arima_model1.pkl')
@@ -29,7 +46,7 @@ def predict_occupancy():
     """Predict ICU occupancy for the next week, with surge alert"""
     try:
         # Load the ARIMA model
-        model = load_arima_model()
+        model = get_arima_model()
         if model is None:
             return jsonify({'error': 'Failed to load model'}), 500
 
@@ -178,7 +195,7 @@ def predict_occupancy():
 def get_prediction_info():
     """Get information about the prediction model"""
     try:
-        model = load_arima_model()
+        model = get_arima_model()
         if model is None:
             return jsonify({'error': 'Failed to load model'}), 500
         
@@ -206,7 +223,7 @@ def get_prediction_info():
 def health_check():
     """Health check endpoint"""
     try:
-        model = load_arima_model()
+        model = get_arima_model()
         status = 'healthy' if model is not None else 'unhealthy'
         
         return jsonify({
@@ -276,8 +293,7 @@ def icu_trend():
         return jsonify({'error': 'Hospital not found'}), 404
 
     # Load weekly dates from ARIMA training data (Dataset1.xlsx)
-    dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'app', 'Dataset', 'Dataset1.xlsx')
-    df = pd.read_excel(dataset_path)
+    df = get_excel_data()
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date')
     occ_col = 'total_ped_icu_patients' if 'total_ped_icu_patients' in df.columns else 'occupied_ped_icu_beds'
@@ -311,7 +327,7 @@ def icu_trend():
         })
 
     # Prediction logic (as before)
-    model = load_arima_model()
+    model = get_arima_model()
     forecast = model.forecast(steps=1)
     system_prediction = float(forecast[0])
     total_weighted_capacity = sum(
@@ -360,8 +376,7 @@ def occupancy_distribution():
     if not hospital:
         return jsonify({'error': 'Hospital not found'}), 404
     # Load weekly data from Dataset1.xlsx
-    dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'app', 'Dataset', 'Dataset1.xlsx')
-    df = pd.read_excel(dataset_path)
+    df = get_excel_data().copy()
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date')
     occ_col = 'total_ped_icu_patients' if 'total_ped_icu_patients' in df.columns else 'occupied_ped_icu_beds'
