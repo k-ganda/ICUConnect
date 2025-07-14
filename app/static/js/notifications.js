@@ -266,6 +266,12 @@ function showReferralModal(referral) {
 
 function acceptReferral() {
 	if (!currentReferralId) return;
+	const btn = document.getElementById('acceptReferralBtn');
+	if (btn) {
+		btn.disabled = true;
+		btn.innerHTML =
+			'Accepting... <span class="spinner-border spinner-border-sm"></span>';
+	}
 	fetch('/referrals/api/respond-to-referral', {
 		method: 'POST',
 		headers: {
@@ -279,14 +285,16 @@ function acceptReferral() {
 	})
 		.then((response) => response.json())
 		.then((data) => {
+			if (btn) {
+				btn.disabled = false;
+				btn.innerHTML = 'Accept';
+			}
 			if (data.success) {
 				stopNotificationSound();
 				if (currentNotification) {
 					currentNotification.remove();
 					currentNotification = null;
 				}
-
-				// Add notification to notification center for the accepting hospital
 				if (window.addNotification) {
 					window.addNotification(
 						'referral',
@@ -295,7 +303,6 @@ function acceptReferral() {
 						{ referral_id: currentReferralId }
 					);
 				}
-
 				showAlert('Referral accepted successfully!', 'success');
 				closeReferralModal();
 			} else {
@@ -303,6 +310,10 @@ function acceptReferral() {
 			}
 		})
 		.catch((error) => {
+			if (btn) {
+				btn.disabled = false;
+				btn.innerHTML = 'Accept';
+			}
 			console.error('Error:', error);
 			showAlert('Error accepting referral', 'error');
 		});
