@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Blueprint, abort, redirect, render_template, url_for, flash, request
 from flask_login import login_required, current_user
 from datetime import datetime
-from app.models import User, Admin, Bed, Hospital  # Add Hospital import
+from app.models import User, Admin, Bed, Hospital  
 from app import db
 from app.utils import send_email
 import secrets
@@ -23,7 +23,10 @@ def admin_required(f):
 def dashboard():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
-        pending_users = User.query.filter_by(is_approved=False).order_by(User.created_at.desc()).paginate(page=page, per_page=10)
+        pending_users = User.query.join(Hospital).filter(
+            User.is_approved == False,
+            Hospital.is_test == False
+        ).order_by(User.created_at.desc()).paginate(page=page, per_page=10)
     else:
         pending_users = User.query.filter_by(hospital_id=current_user.hospital_id, is_approved=False).order_by(User.created_at.desc()).paginate(page=page, per_page=10)
     return render_template('admin/dashboard.html', pending_users=pending_users)
@@ -64,8 +67,8 @@ def approve_user(user_id):
 def beds():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
-        beds = Bed.query.join(Hospital).order_by(Bed.id.desc()).paginate(page=page, per_page=10)
-        hospitals = Hospital.query.order_by(Hospital.name).all()
+        beds = Bed.query.join(Hospital).filter(Hospital.is_test == False).order_by(Bed.id.desc()).paginate(page=page, per_page=10)
+        hospitals = Hospital.query.filter_by(is_test=False).order_by(Hospital.name).all()
     else:
         beds = Bed.query.filter_by(hospital_id=current_user.hospital_id).order_by(Bed.id.desc()).paginate(page=page, per_page=10)
         hospitals = None
@@ -152,8 +155,8 @@ def remove_bed(bed_id):
 def admins():
     page = request.args.get('page', 1, type=int)
     if current_user.privilege_level == 'super':
-        admins = Admin.query.order_by(Admin.created_at.desc()).paginate(page=page, per_page=10)
-        hospitals = Hospital.query.order_by(Hospital.name).all()
+        admins = Admin.query.join(Hospital).filter(Hospital.is_test == False).order_by(Admin.created_at.desc()).paginate(page=page, per_page=10)
+        hospitals = Hospital.query.filter_by(is_test=False).order_by(Hospital.name).all()
     else:
         admins = Admin.query.filter_by(hospital_id=current_user.hospital_id).order_by(Admin.created_at.desc()).paginate(page=page, per_page=10)
         hospitals = None
@@ -167,7 +170,7 @@ def add_admin():
     email = request.form.get('email')
     name = request.form.get('name')
     hospital_id = request.form.get('hospital_id')
-    # Remove password from form (no longer needed)
+    
     if not email or not name or (current_user.privilege_level == 'super' and not hospital_id):
         flash('Email, name, and hospital are required.', 'danger')
         return redirect(url_for('admin.admins'))
@@ -216,7 +219,7 @@ def remove_admin(admin_id):
         return redirect(url_for('admin.admins'))
     
     try:
-        # Check if admin has any approved users (optional: prevent removal if they do)
+        # Check if admin has any approved users
         approved_users = User.query.filter_by(admin_id=admin.id).count()
         if approved_users > 0:
             flash(f'Cannot remove admin {admin.email} - they have {approved_users} approved users. Please reassign users first.', 'warning')
@@ -238,7 +241,7 @@ def hospitals():
     if current_user.privilege_level != 'super':
         abort(403)
     page = request.args.get('page', 1, type=int)
-    hospitals = Hospital.query.order_by(Hospital.created_at.desc()).paginate(page=page, per_page=10)
+    hospitals = Hospital.query.filter_by(is_test=False).order_by(Hospital.created_at.desc()).paginate(page=page, per_page=10)
     return render_template('admin/hospitals.html', hospitals=hospitals)
 
 @admin_bp.route('/hospitals/add', methods=['POST'])
