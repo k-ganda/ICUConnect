@@ -6,6 +6,8 @@ from app.models import Discharge, Admission, Hospital
 from sqlalchemy.orm import joinedload
 from app.utils import get_current_local_time, to_utc_time, to_local_time
 from app import socketio
+from sqlalchemy import func, case
+from app.models import Bed
 
 discharge_bp = Blueprint('discharge', __name__)
 
@@ -144,21 +146,32 @@ def api_discharge():
         db.session.add(discharge)
         db.session.commit()
         
+        # Optimized hospitals_data aggregation
+        all_hospitals = Hospital.query.all()
+        hospital_ids = [h.id for h in all_hospitals]
+        bed_counts = {row[0]: {'total': row[1], 'available': row[2]} for row in db.session.query(
+            Bed.hospital_id,
+            func.count(Bed.id),
+            func.sum(case((Bed.is_occupied == False, 1), else_=0))
+        ).filter(Bed.hospital_id.in_(hospital_ids)).group_by(Bed.hospital_id).all()}
+        hospitals_data = []
+        for h in all_hospitals:
+            counts = bed_counts.get(h.id, {'total': 0, 'available': 0})
+            hospitals_data.append({
+                'id': h.id,
+                'name': h.name,
+                'lat': h.latitude,
+                'lng': h.longitude,
+                'level': h.level,
+                'beds': counts['total'],
+                'available': counts['available']
+            })
         # Emit bed_stats_update for real-time dashboard update
         hospital_stats = {
             'hospital_id': hospital.id,
-            'total_beds': hospital.total_beds,
-            'available_beds': hospital.available_beds,
+            'total_beds': bed_counts.get(hospital.id, {'total': 0})['total'],
+            'available_beds': bed_counts.get(hospital.id, {'available': 0})['available'],
         }
-        hospitals_data = [{
-            'id': h.id,
-            'name': h.name,
-            'lat': h.latitude,
-            'lng': h.longitude,
-            'level': h.level,
-            'beds': h.total_beds,
-            'available': h.available_beds
-        } for h in Hospital.query.all()]
         socketio.emit('bed_stats_update', {
             'hospital_stats': hospital_stats,
             'hospitals': hospitals_data

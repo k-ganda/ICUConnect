@@ -150,7 +150,11 @@ def available_beds():
 @admission_bp.route('/api/admit', methods=['POST'])
 @login_required
 def admit_patient():
+    import time
+    from sqlalchemy import func, case
+    start_time = time.time()
     try:
+        step1 = time.time()
         hospital = Hospital.query.get(current_user.hospital_id)
         bed_number = request.json['bed_number']
         reserved_bed_number = request.json.get('reserved_bed_number')
@@ -167,6 +171,7 @@ def admit_patient():
                 bed_number=bed_number,
                 is_occupied=False
             ).first()
+        step2 = time.time()
 
         if not bed:
             return jsonify({
@@ -186,31 +191,47 @@ def admit_patient():
             gender=request.json['gender'],
             admission_time=to_utc_time(get_current_local_time(hospital), hospital)
         )
-
         bed.is_occupied = True
         db.session.add(admission)
+        step3 = time.time()
         db.session.commit()
         db.session.expire_all()
+        step4 = time.time()
+
+        # Optimized hospitals_data aggregation
+        all_hospitals = Hospital.query.all()
+        hospital_ids = [h.id for h in all_hospitals]
+        bed_counts = {row[0]: {'total': row[1], 'available': row[2]} for row in db.session.query(
+            Bed.hospital_id,
+            func.count(Bed.id),
+            func.sum(case((Bed.is_occupied == False, 1), else_=0))
+        ).filter(Bed.hospital_id.in_(hospital_ids)).group_by(Bed.hospital_id).all()}
+        hospitals_data = []
+        for h in all_hospitals:
+            counts = bed_counts.get(h.id, {'total': 0, 'available': 0})
+            hospitals_data.append({
+                'id': h.id,
+                'name': h.name,
+                'lat': h.latitude,
+                'lng': h.longitude,
+                'level': h.level,
+                'beds': counts['total'],
+                'available': counts['available']
+            })
 
         # Emit bed_stats_update for real-time dashboard update
         hospital_stats = {
             'hospital_id': hospital.id,
-            'total_beds': hospital.total_beds,
-            'available_beds': hospital.available_beds,
+            'total_beds': bed_counts.get(hospital.id, {'total': 0})['total'],
+            'available_beds': bed_counts.get(hospital.id, {'available': 0})['available'],
         }
-        hospitals_data = [{
-            'id': h.id,
-            'name': h.name,
-            'lat': h.latitude,
-            'lng': h.longitude,
-            'level': h.level,
-            'beds': h.total_beds,
-            'available': h.available_beds
-        } for h in Hospital.query.all()]
         socketio.emit('bed_stats_update', {
             'hospital_stats': hospital_stats,
             'hospitals': hospitals_data
         })
+        step5 = time.time()
+
+        print(f"[PROFILE] /api/admit: total={step5-start_time:.2f}s | bed_lookup={step2-step1:.2f}s | admission_create={step3-step2:.2f}s | commit={step4-step3:.2f}s | socket_emit={step5-step4:.2f}s")
 
         return jsonify({
             'success': True,
