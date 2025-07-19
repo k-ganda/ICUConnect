@@ -9,32 +9,50 @@ user_bp = Blueprint('user', __name__)
 @user_bp.route('/dashboard')
 @login_required
 def dashboard():
+    import time
+    from sqlalchemy import func, case
+    from app.models import Bed
+    start_time = time.time()
     # Prevent admin from accessing user dashboard
     if isinstance(current_user, Admin):
         abort(403)
-    
+    step1 = time.time()
     hospital = Hospital.query.get(current_user.hospital_id)
+    step2 = time.time()
     if not hospital:
         flash('Hospital not found', 'danger')
         return redirect(url_for('auth.login'))
-    
     # Get all hospitals except the current user's hospital
     all_hospitals = Hospital.query.filter(Hospital.id != hospital.id).all()
-    hospitals_data = [{
-        'id': h.id,
-        'name': h.name,
-        'lat': h.latitude,
-        'lng': h.longitude,
-        'level': h.level,
-        'beds': h.total_beds,
-        'available': h.available_beds
-    } for h in all_hospitals]
-    
-    return render_template(
+    step3 = time.time()
+    hospital_ids = [h.id for h in all_hospitals]
+    # Aggregate bed counts in a single query, PostgreSQL compatible
+    bed_counts = {row[0]: {'total': row[1], 'available': row[2]} for row in db.session.query(
+        Bed.hospital_id,
+        func.count(Bed.id),
+        func.sum(case((Bed.is_occupied == False, 1), else_=0))
+    ).filter(Bed.hospital_id.in_(hospital_ids)).group_by(Bed.hospital_id).all()}
+    hospitals_data = []
+    for h in all_hospitals:
+        counts = bed_counts.get(h.id, {'total': 0, 'available': 0})
+        hospitals_data.append({
+            'id': h.id,
+            'name': h.name,
+            'lat': h.latitude,
+            'lng': h.longitude,
+            'level': h.level,
+            'beds': counts['total'],
+            'available': counts['available']
+        })
+    step4 = time.time()
+    result = render_template(
         'users/dashboard.html',
         hospital=hospital,
         hospitals_data=hospitals_data
     )
+    step5 = time.time()
+    print(f"[PROFILE] /dashboard: total={step5-start_time:.2f}s | admin_check={step1-start_time:.2f}s | get_hospital={step2-step1:.2f}s | get_all_hospitals={step3-step2:.2f}s | build_hospitals_data={step4-step3:.2f}s | render_template={step5-step4:.2f}s")
+    return result
 
 @user_bp.route('/kisumu-geojson')
 def kisumu_geojson():
