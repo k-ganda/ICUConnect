@@ -196,8 +196,8 @@ def initiate_referral():
 @referral_bp.route('/api/respond-to-referral', methods=['POST'])
 @login_required
 def respond_to_referral():
-    """Handle hospital response to referral request"""
     try:
+        from sqlalchemy import func, case
         try:
             data = request.get_json(force=True)
         except Exception as e:
@@ -214,26 +214,22 @@ def respond_to_referral():
             current_app.logger.error("Missing response_type")
             return jsonify({'success': False, 'message': 'Missing response_type'}), 400
         response_message = data.get('response_message', '')
-        
         # Get referral request
         referral = ReferralRequest.query.filter_by(
             id=referral_id,
             target_hospital_id=responding_hospital.id,
             status='Pending'
         ).first()
-        
         if not referral:
             current_app.logger.error(f"Referral request not found or already processed for ID: {referral_id}")
             return jsonify({
                 'success': False,
                 'message': 'Referral request not found or already processed'
             }), 404
-        
         # Update referral status
         if response_type == 'accept':
             referral.status = 'Accepted'
             referral.responded_at = datetime.utcnow()
-
             # Book a bed: find an available bed and mark it as occupied
             available_bed = Bed.query.filter_by(
                 hospital_id=referral.target_hospital_id,
@@ -244,7 +240,6 @@ def respond_to_referral():
             else:
                 current_app.logger.error(f"No available beds to book for referral ID: {referral_id}")
                 return jsonify({'success': False, 'message': 'No available beds to book!'}), 400
-
             # Create patient transfer
             transfer = PatientTransfer(
                 referral_request_id=referral_id,
@@ -264,7 +259,6 @@ def respond_to_referral():
             )
             db.session.add(transfer)
             db.session.commit()
-
             # Emit transfer_status_update for the new transfer
             transfer_data = {
                 'id': transfer.id,
@@ -281,23 +275,32 @@ def respond_to_referral():
             current_app.logger.debug("Emitting transfer_status_update:", transfer_data)
             socketio.emit('transfer_status_update', transfer_data)
             current_app.logger.debug("Emitted transfer_status_update")
-
-            # Emit bed_stats_update for real-time dashboard update
+            # Optimized hospitals_data aggregation
+            all_hospitals = Hospital.query.all()
+            hospital_ids = [h.id for h in all_hospitals]
+            bed_counts = {row[0]: {'total': row[1], 'available': row[2]} for row in db.session.query(
+                Bed.hospital_id,
+                func.count(Bed.id),
+                func.sum(case((Bed.is_occupied == False, 1), else_=0))
+            ).filter(Bed.hospital_id.in_(hospital_ids)).group_by(Bed.hospital_id).all()}
+            hospitals_data = []
+            for h in all_hospitals:
+                counts = bed_counts.get(h.id, {'total': 0, 'available': 0})
+                hospitals_data.append({
+                    'id': h.id,
+                    'name': h.name,
+                    'lat': h.latitude,
+                    'lng': h.longitude,
+                    'level': h.level,
+                    'beds': counts['total'],
+                    'available': counts['available']
+                })
             target_hospital = Hospital.query.get(referral.target_hospital_id)
             hospital_stats = {
                 'hospital_id': target_hospital.id,
-                'total_beds': target_hospital.total_beds,
-                'available_beds': target_hospital.available_beds,
+                'total_beds': bed_counts.get(target_hospital.id, {'total': 0})['total'],
+                'available_beds': bed_counts.get(target_hospital.id, {'available': 0})['available'],
             }
-            hospitals_data = [{
-                'id': h.id,
-                'name': h.name,
-                'lat': h.latitude,
-                'lng': h.longitude,
-                'level': h.level,
-                'beds': h.total_beds,
-                'available': h.available_beds
-            } for h in Hospital.query.all()]
             socketio.emit('bed_stats_update', {
                 'hospital_stats': hospital_stats,
                 'hospitals': hospitals_data
@@ -316,7 +319,6 @@ def respond_to_referral():
         )
         db.session.add(response)
         db.session.commit()
-        
         # Emit socket event to notify the requesting hospital about the response
         response_data = {
             'referral_id': referral_id,
@@ -327,7 +329,6 @@ def respond_to_referral():
             'requesting_hospital_id': referral.requesting_hospital_id
         }
         socketio.emit('referral_response', response_data)
-        
         # Also emit notification for the accepting hospital (when accepting)
         if response_type == 'accept':
             accepting_hospital_notification = {
@@ -336,12 +337,10 @@ def respond_to_referral():
                 'hospital_id': responding_hospital.id
             }
             socketio.emit('referral_accepted_by_us', accepting_hospital_notification)
-        
         return jsonify({
             'success': True,
             'message': f'Referral {response_type}ed successfully'
         }), 200
-        
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error responding to referral: {e}")
