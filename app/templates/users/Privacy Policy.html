@@ -1,0 +1,360 @@
+{% extends "base.html" %} {% block title %}Privacy Policy{% endblock %} {% block
+content %}
+<div class="d-flex justify-content-center my-4">
+	<a
+		href="{{ url_for('user.dashboard') }}"
+		class="btn btn-lg btn-outline-primary shadow rounded-pill px-4">
+		<i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+	</a>
+</div>
+<div class="container py-4">
+	<h1>ICUConnect Privacy Policy</h1>
+	<p><em>Effective: July 21st, 2021</em></p>
+	<h2>Introduction</h2>
+	<p>
+		ICUConnect (“we”, “us”, or “our”) is a digital platform designed to help
+		public hospitals in Kenya coordinate ICU bed availability, streamline
+		patient referrals, and predict ICU occupancy using machine learning
+		techniques. We are deeply committed to protecting your privacy and ensuring
+		transparency about how we handle your information. This Privacy Policy
+		outlines our data practices, including the information we collect, how we
+		use it, your choices, and the steps we take to ensure your data remains
+		secure and compliant with applicable laws.
+	</p>
+	<p>
+		This policy applies to all users of ICUConnect, including hospitals,
+		hospital administrators, and hospital personnel (such as doctors and
+		nurses).
+	</p>
+
+	<h2>About ICUConnect</h2>
+	<p>
+		ICUConnect is a web-based dashboard that enables authorized hospitals and
+		their personnel to:
+	</p>
+	<ul>
+		<li>View and update ICU bed availability in real time.</li>
+		<li>Refer and transfer patients between hospitals.</li>
+		<li>Admit and discharge patients.</li>
+		<li>Receive notifications and alerts about ICU status.</li>
+		<li>Access predictive analytics for ICU occupancy.</li>
+	</ul>
+	<p>
+		The platform is currently designed and intended for research and
+		demonstration purposes, with plans for future deployment in a real-world
+		setting. Please note that some data, such as ICU bed capacities and
+		occupancy, may be simulated for these purposes and should not be used for
+		real-world clinical decision-making.
+	</p>
+
+	<h2>Information We Collect</h2>
+	<p>
+		The information we collect depends on your role and how you interact with
+		ICUConnect.
+	</p>
+
+	<h3>1. Information You Provide</h3>
+	<h4>Account Registration</h4>
+	<p>
+		To use ICUConnect, hospital personnel and administrators must create an
+		account. During registration, we collect your name, email address, hospital
+		affiliation, and a password (securely hashed). Hospitals provide facility
+		information, including name, location (latitude and longitude), the levels
+		(level 1 to 6 according to the Kenyan health system classification), and a
+		timezone.
+	</p>
+	<h4>Profile and Settings</h4>
+	<p>
+		You may provide additional information, such as your specific role (doctor,
+		nurse, admin), and customize your notification preferences (sound settings,
+		referral delay time, and in-app notifications).
+	</p>
+	<h4>Communications</h4>
+	<p>
+		If you contact us for support, feedback, or inquiries, we collect the
+		information you provide, including your contact details and the content of
+		your message, to personalize our assistance and address your needs
+		effectively.
+	</p>
+
+	<h3>2. Information We Collect Automatically</h3>
+	<h4>Usage and Log Data</h4>
+	<p>
+		We automatically collect information about your activity on ICUConnect, such
+		as login, verification times, actions performed (e.g., updating bed status,
+		initiating or responding to referrals), and system settings. This data helps
+		us improve the platform’s functionality, monitor performance, detect
+		potential security threats, and maintain a detailed audit trail in line with
+		privacy best practices and the Kenya Digital Act, 2019.
+	</p>
+	<h4>Notifications and Alerts</h4>
+	<p>
+		We log when notifications are sent and received, and any user interactions
+		with these notifications, as well as your preferences for receiving them.
+	</p>
+
+	<h3>3. Information from Third Parties</h3>
+	<h4>Hospital Registry Data</h4>
+	<p>
+		Hospital facility information is sourced from the Kenya Master Health
+		Facility Registry (KMHFR), the official national registry of health
+		facilities in Kenya.
+	</p>
+	<h4>Simulated Data</h4>
+	<p>
+		As mentioned, some ICU bed capacity and occupancy data may be simulated for
+		research and demonstration purposes during the platform's development and
+		testing phases.
+	</p>
+
+	<h3>4. Indirect Collection of Patient Data</h3>
+	<p>
+		ICUConnect does not collect patient data directly from patients. Instead,
+		patient information, which is categorized as sensitive personal data under
+		Kenyan law, is entered into the system by authorized hospital personnel as
+		part of routine hospital operations. This includes data related to patient
+		admissions, discharges, referrals, and transfers. The information collected
+		may include, but is not limited to:
+	</p>
+	<ul>
+		<li>Admission and discharge dates</li>
+		<li>
+			Referrals and transfer details (e.g., referring hospital, receiving
+			hospital, reason for transfer)
+		</li>
+		<li>
+			Patient demographic details such as name (masked on visualization), age
+			and gender
+		</li>
+		<li>ICU bed assignment and occupancy status</li>
+	</ul>
+	<h4>Responsibility for Patient Consent</h4>
+	<p>
+		The <strong>hospital</strong>, as the primary data controller, is
+		responsible for obtaining appropriate and informed consent from patients for
+		the collection and processing of their health data for the purposes of
+		coordinating ICU resources, managing patient flow, and supporting hospital
+		operations, as required by the Kenya Data Protection Act, 2019, and the
+		Digital Health Act, 2023. ICUConnect acts as a data processor (or joint
+		controller, depending on the specific agreement with the hospital) on behalf
+		of the hospitals, facilitating the lawful processing of this data.
+	</p>
+	<p>
+		This patient data is solely used to coordinate ICU resources, manage patient
+		flow, and support hospital operations. On visualization within the platform,
+		patient names are masked to protect privacy. Any patient-related data is
+		strictly accessible only to authorized users within the specific hospital
+		network involved in the patient's care and is not shared with third parties,
+		except as required by law or for aggregated, anonymized research and
+		reporting purposes.
+	</p>
+
+	<h2>How We Use Your Information</h2>
+	<p>
+		We use your information for the following specific and legitimate purposes:
+	</p>
+	<ul>
+		<li>
+			To operate and maintain the ICUConnect platform: This includes hosting,
+			debugging, and improving the platform's core functionalities.
+		</li>
+		<li>
+			User Authentication and Access Management: To authenticate users and
+			manage access based on their assigned roles (e.g., hospital administrator,
+			doctor, nurse).
+		</li>
+		<li>
+			Facilitate Healthcare Coordination: To coordinate ICU bed availability,
+			manage patient admissions, discharges, referrals, and transfers
+			efficiently.
+		</li>
+		<li>
+			Provide Real-time Notifications and Alerts: To keep users informed about
+			ICU status changes and patient events.
+		</li>
+		<li>
+			Generate Predictive Analytics: To display ICU occupancy predictions using
+			machine learning models to aid hospital planning.
+		</li>
+		<li>
+			Customize User Experience: To personalize your experience based on your
+			settings and preferences.
+		</li>
+		<li>
+			System Monitoring and Security: To monitor system usage, ensure the
+			security and integrity of the platform, and maintain detailed audit trails
+			for compliance.
+		</li>
+		<li>
+			Customer Support: To respond to your inquiries and provide technical or
+			operational support.
+		</li>
+		<li>
+			Compliance with Legal and Regulatory Requirements: To meet obligations
+			under the Kenya Data Protection Act, 2019, the Digital Health Act, 2023,
+			and other applicable laws.
+		</li>
+	</ul>
+
+	<h2>How ICUConnect Works for Different Users</h2>
+	<h3>Hospitals</h3>
+	<p>
+		Hospitals are registered entities on ICUConnect, each with a profile
+		containing facility information and ICU bed capacity. Each hospital
+		designates administrators and users (hospital personnel) responsible for
+		operations within that facility.
+	</p>
+	<h3>Administrators</h3>
+	<p>
+		Hospital administrators have elevated privileges to manage their hospital
+		accounts, approve new users, manage bed counts, and assign other
+		administrators within their facility. The specific allocation of
+		administrative roles depends on each hospital's internal rules and
+		workflows. Administrators can also view audit logs to ensure compliance with
+		internal and external policies.
+	</p>
+	<h3>Hospital Personnel (Users)</h3>
+	<p>
+		Doctors, nurses, and other authorized staff use ICUConnect to admit and
+		discharge patients, initiate and respond to referrals, and update ICU bed
+		status. Users can customize their notification preferences, view real-time
+		updates, and access dashboards relevant to their specific roles.
+	</p>
+
+	<h2>Notifications and Settings</h2>
+	<p>
+		ICUConnect provides a range of notification options to keep you informed:
+	</p>
+	<ul>
+		<li>
+			<strong>In-app Notifications:</strong> Real-time alerts for admissions,
+			discharges, referrals, and escalation alerts for unresponded referrals.
+		</li>
+		<li>
+			<strong>Email Notifications:</strong> Updates such as verification links
+			after sign-up, notifications when your account has been approved by
+			administrators, or when a new user signs up to your hospital and requires
+			approval. These are sent to your registered email address.
+		</li>
+		<li>
+			<strong>Customizable settings:</strong> You can adjust your notification
+			preferences, including enabling/disabling sound, setting notification
+			thresholds, and choosing which events trigger alerts.
+		</li>
+	</ul>
+	<p>
+		All notification preferences can be managed directly in your account
+		settings. Please note that some notifications are mandatory for system
+		security, operational functionality, and compliance purposes.
+	</p>
+
+	<h2>Data Sharing and Disclosure</h2>
+	<h3>
+		With Other Users Authorized Users within the ICUConnect Healthcare Network
+	</h3>
+	<p>
+		Information such as hospital name, current bed availability, and high-level
+		referral status is shared with authorized personnel across hospitals within
+		the ICUConnect network to facilitate coordinated patient care. Detailed
+		patient referral and transfer information, including patient age, gender,
+		and diagnosis, is strictly accessible only to personnel at the referring and
+		receiving hospitals directly involved in the patient's transfer.
+	</p>
+	<h3>With Third Parties</h3>
+	<p>
+		We do not sell or rent your personal information to third parties for their
+		marketing purposes. We may share data with regulatory authorities or law
+		enforcement if required by a legal obligation.
+	</p>
+
+	<h2>Data Security</h2>
+	<p>
+		We take your privacy and security very seriously by implementing technical
+		and organizational measures to protect your privacy and the security of your
+		data.
+	</p>
+	<ul>
+		<li>All passwords are securely hashed and never stored in plain text.</li>
+		<li>
+			Access to sensitive data is strictly restricted based on user roles and
+			privileges, ensuring that only authorized personnel can access relevant
+			information.
+		</li>
+		<li>Data is stored in a secure, managed database.</li>
+		<li>
+			We conduct regular security audits and continuous monitoring to detect,
+			prevent, and respond to unauthorized access, data breaches, and other
+			security incidents.
+		</li>
+		<li>
+			We adhere to the principle of data minimization, collecting and processing
+			only the data that is necessary for the stated purposes.
+		</li>
+	</ul>
+
+	<h2>Data Retention</h2>
+	<p>
+		We retain your information for as long as your account is active or as
+		needed to provide our services. Audit logs and historical data may be
+		retained for compliance, research, and security purposes. You may request
+		deletion of your account or data, subject to legal and operational
+		requirements.
+	</p>
+
+	<h2>Your Rights and Choices</h2>
+	<p>
+		Following the Kenya Data Protection Act, 2019, you have the following rights
+		regarding your data:
+	</p>
+	<ul>
+		<li>
+			<strong>Access and Correction:</strong> You have the right to request
+			access to the personal information we hold about you and to request
+			corrections or updates to inaccurate or incomplete data at any time.
+		</li>
+		<li>
+			<strong>Notification Preferences:</strong> You can customize how you
+			receive notifications and alerts through your account settings.
+		</li>
+		<li>
+			<strong>Account Deletion:</strong> You may request the deletion of your
+			account. Some data may be retained for compliance or research.
+		</li>
+		<li>
+			<strong>Right to Object:</strong> You have the right to object to the
+			processing of your personal data under certain circumstances.
+		</li>
+		<li>
+			<strong>Support:</strong> If you have any questions or wish to exercise
+			any of your rights, please contact us using the details below.
+		</li>
+	</ul>
+
+	<h2>Changes to This Policy</h2>
+	<p>
+		We may update this Privacy Policy from time to time to reflect changes in
+		our practices, technology, or legal requirements. We will notify you of any
+		significant changes by posting the updated policy on our platform and
+		updating the "Effective" date at the top of this page. Your continued use of
+		ICUConnect after such changes constitutes your acceptance of the new Privacy
+		Policy.
+	</p>
+
+	<h2>Contact Us</h2>
+	<p>
+		If you have any questions or concerns about this Privacy Policy, your data,
+		or wish to exercise your rights, please contact us at:
+	</p>
+	<p>
+		<strong>Email:</strong>
+		<a href="mailto:k.ganda@alustudent.com">Kathrine Ganda</a>
+	</p>
+
+	<p>
+		<em
+			>By using ICUConnect, you acknowledge that you have read and understood
+			this Privacy Policy and agree to its terms.</em
+		>
+	</p>
+</div>
+{% endblock %}
