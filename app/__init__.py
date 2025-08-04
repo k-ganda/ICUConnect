@@ -200,8 +200,8 @@ def _initialize_database(app, reset=False):
 
         # migrate(message='Initial migration', directory=migrations_path)
         # upgrade(directory=migrations_path)
-        migrate(message='Initial migration', directory=migrations_path)
-        upgrade(directory=migrations_path)
+        #migrate(message='Initial migration', directory=migrations_path)
+        #upgrade(directory=migrations_path)
 
         # Create tables
         db.create_all()
